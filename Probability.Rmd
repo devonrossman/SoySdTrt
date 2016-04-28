@@ -74,7 +74,7 @@ D1 <- within(D1, {
   }
 )
 D1$locst<-paste(D1$location, D1$sdtrt)
-scatterplot(PredictedProb ~ soycost | locst, data=D1,
+scatterplot(PredictedProb ~ Low5wk | locst, data=D1,
   	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
    main="Enhanced Scatter Plot") 
 
