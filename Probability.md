@@ -7,6 +7,37 @@ output: html_document
 
 
 ```
+## 
+## 
+## processing file: Probability.Rmd
+```
+
+```
+##   |                                                                         |                                                                 |   0%  |                                                                         |......................                                           |  33%
+##   ordinary text without R code
+## 
+##   |                                                                         |...........................................                      |  67%
+## label: unnamed-chunk-16 (with options) 
+## List of 1
+##  $ echo: logi FALSE
+```
+
+```
+##   |                                                                         |.................................................................| 100%
+##   ordinary text without R code
+```
+
+```
+## output file: Probability.md
+```
+
+```
+## [1] "Probability.md"
+```
+
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-1.png)
+
+```
 ## Warning in optwrap(optimizer, devfun, start, rho$lower, control =
 ## control, : convergence code 1 from bobyqa: bobyqa -- maximum number of
 ## function evaluations exceeded
@@ -62,7 +93,11 @@ output: html_document
 ## [1] 0.4463935
 ```
 
-![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png)
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-2.png)
+
+```
+## [1] "23" "27" "29"
+```
 
 ```
 ## Warning: non-unique values when setting 'row.names': '2013 ALE', '2013
@@ -76,5 +111,5 @@ output: html_document
 ## Error in `row.names<-.data.frame`(`*tmp*`, value = value): duplicate 'row.names' are not allowed
 ```
 
-![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-2.png)
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-3.png)
 
