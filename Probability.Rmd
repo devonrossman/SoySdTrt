@@ -27,12 +27,12 @@ Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON")
            )
 Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
-#Y3up <- rbind(Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3)
 Diff<-function(x){
   cry<-(Y3$stcost/(Y3$yield*x))
   diff<-(Y3$RR-cry)
   return(diff)
 }
+
 output<-as.data.frame(NULL)
 for(i in c(6,10,14)){
 DIFF<-Diff(i)
@@ -42,7 +42,6 @@ output<-rbind.data.frame(output,output_i)
 output$soycost<-as.numeric(output$i)
 output$Diff<-as.numeric(output$DIFF)
 
-
 D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), summarise,
                N    = length(Diff),
                mean = mean(Diff),
@@ -51,22 +50,31 @@ D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), su
             scale=sd*0.551328895))
 D$N <- ifelse(D$mean < 0, 0, ifelse((D$mean > 0), 1, 1))
 D$var <- as.factor(D$var)
+
 m <- glmer(N ~ sdtrt + Low5wk + soycost + location + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"), nAGQ = 10)
 rsq <- function(formula, data, indices) {
   d <- data[indices,] # allows boot to select sample 
   fit <- lm(formula, data=d)
   return(summary(fit)$r.square)
-} 
+}
+
+m2 <- glm(N ~ sdtrt + Low5wk + soycost + location, data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"), nAGQ = 10)
+rsq2 <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(formula, data=d)
+  return(summary(fit)$r.square)
+}
+
+
 # bootstrapping with 1000 replications 
 results <- boot(data=D, statistic=rsq, 
   	R=1000, formula=N~sdtrt+location+soycost+var+Low5wk)
+resultsa <-boot(data=D, statistic=rsq2, 
+  	R=1000, formula=N~sdtrt+location+soycost+Low5wk)
 
 lgt1 <- glm(N ~ soycost + location + Low5wk + sdtrt + var, data = results$data, family = "binomial")
-summary(lgt1)
-
-#McFaddens Pseudo R-squared
-#1 - (Residual variance / Null variance)
-1-(729.98/1318.59)
+#summary(lgt1)
+lgt2 <-glm(N ~ soycost + location + Low5wk + sdtrt, data = resultsa$data, family = "binomial")
 
 D1 <- cbind(D, predict(lgt1, type=c("link", "response", "terms"), se=TRUE))
 D1 <- within(D1, {
@@ -75,6 +83,21 @@ D1 <- within(D1, {
   UL <- plogis(fit + (1.96 * se.fit))
   }
 )
+
+D2 <- cbind(D, predict(lgt2, type=c("link", "response", "terms"), se=TRUE))
+D2 <- within(D2, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+
+chisq.test(x=D1$PredictedProb, y=D2$PredictedProb)
+
+#McFaddens Pseudo R-squared
+#1 - (Residual variance / Null variance)
+1-(729.98/1318.59)
+
 D1$locst<-paste(D1$location, D1$sdtrt)
 scatterplot(PredictedProb ~ var | locst, data=D1,
   	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
@@ -539,5 +562,9 @@ varY3<-subset(Y3, (Y3$var=="5"))
 mean(varY3$RR)
 varY3<-subset(Y3, (Y3$var=="6"))
 mean(varY3$RR)
+
+
+
+
 ```
 
