@@ -58,7 +58,7 @@ rsq <- function(formula, data, indices) {
   return(summary(fit)$r.square)
 }
 
-m2 <- glm(N ~ sdtrt + Low5wk + soycost + location, data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"), nAGQ = 10)
+m2 <- glmer(N ~ sdtrt + Low5wk + location + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"), nAGQ = 10)
 rsq2 <- function(formula, data, indices) {
   d <- data[indices,] # allows boot to select sample 
   fit <- lm(formula, data=d)
@@ -70,7 +70,7 @@ rsq2 <- function(formula, data, indices) {
 results <- boot(data=D, statistic=rsq, 
   	R=1000, formula=N~sdtrt+location+soycost+var+Low5wk)
 resultsa <-boot(data=D, statistic=rsq2, 
-  	R=1000, formula=N~sdtrt+location+soycost+Low5wk)
+  	R=1000, formula=N~sdtrt+location+var+Low5wk)
 
 lgt1 <- glm(N ~ soycost + location + Low5wk + sdtrt + var, data = results$data, family = "binomial")
 #summary(lgt1)
@@ -103,10 +103,12 @@ scatterplot(PredictedProb ~ var | locst, data=D1,
   	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
    main="Enhanced Scatter Plot") 
 probsub <-(D1)
+probsub<-subset(probsub, probsub$soycost=="6")
 probsub$paste <- paste(probsub$YL, probsub$sdtrt, probsub$var)
 stuff<-as.data.frame(cbind(probsub$PredictedProb, probsub$N))
-#rownames(stuff)<-probsub$paste
+rownames(stuff)<-probsub$paste
 colnames(stuff)<-c("Predicted Probability", "Break Even")
+
 pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
          #cluster_rows=hc.rows, 
          clustering_method="average")
