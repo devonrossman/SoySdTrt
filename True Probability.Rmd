@@ -1,0 +1,114 @@
+---
+title: "True Probability"
+author: "Devon"
+date: "May 2, 2016"
+output: html_document
+---
+```{r, echo=FALSE}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+#Y3up <- rbind(Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3)
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+
+D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), summarise,
+               N    = length(Diff),
+               mean = mean(Diff),
+               sd   = sd(Diff),
+               se   = sd / sqrt(N),
+            scale=sd*0.551328895))
+D$N <- ifelse(D$mean < 0, 0, ifelse((D$mean > 0), 1, 1))
+D$var <- as.factor(D$var)
+m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+rsq <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(formula, data=d)
+  return(summary(fit)$r.square)
+} 
+summary(m)
+
+FUN <- function(fit) {
+  return(c(fixef(fit),unlist(VarCorr(fit)), predict(fit)))
+}
+
+resultre <-bootMer(m, FUN, nsim=3, seed=NULL)
+summary(resultre$data)
+plot(m)
+
+Nestimate <- function(formula, data, indices) {
+  return(mean(x))
+  d <- D[i,]
+}
+
+# bootstrapping with 1000 replications 
+results <- boot(data=D, statistic=Nestimate, 
+  	R=1000, formula=N~sdtrt+location+soycost+var+Low5wk)
+summary(results$t)
+
+lgt1 <- glm(N ~ soycost + location + Low5wk + sdtrt + var, data = resultre$data, family = "binomial")
+summary(lgt1)
+
+#McFaddens Pseudo R-squared
+#1 - (Residual variance / Null variance)
+1-(729.98/1318.59)
+
+D1 <- cbind(D, predict(lgt1, type=c("link", "response", "terms"), se=TRUE))
+D1 <- within(D1, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+D1$locst<-paste(D1$location, D1$sdtrt)
+scatterplot(PredictedProb ~ soycost | locst, data=D1,
+  	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
+   main="Enhanced Scatter Plot") 
+summary(stuff)
+stuff<-as.data.frame(cbind(D1$PredictedProb, D1$N))
+rownames(stuff)<-D1$YL
+colnames(stuff)<-c("Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+#wald.test(b = coef(lgt), Sigma = vcov(lgt), Terms=11:12)
+write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
