@@ -23,6 +23,11 @@ library(plot3D)
 library(boot)
 library(pheatmap)
 library(LearnBayes)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+#install.packages("AICcmodavg")
 
 rm(list = ls())
 
@@ -34,8 +39,9 @@ estBetaParams <- function(mu, var) {
 estBetaParams(0.50, 0.1)
 
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
-Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON")
-           )
+Y3<-subset(Y, !(Y$Diff8=="NA" ) & !(Y$sdtrt=="CON")
+                )
+
 Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
 #Y3up <- rbind(Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3, Y3)
 Diff<-function(x){
@@ -61,19 +67,23 @@ D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), su
 D$N <- ifelse(D$mean < 0, 0, ifelse((D$mean > 0), 1, 1))
 D$var <- as.factor(D$var)
 
-m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | var), D, binomial
+)
 
 #McFaddens Pseudo R-squared
 #1 - (Residual variance / Null variance)
 1-(729.98/1318.59)
-
-D1 <- cbind(D, predict(m, type=c("link", "response", "terms"), se=TRUE))
+fit<-predict(m, type=c("response"))
+predictSE.merMod(m, D, se.fit = TRUE, type = "response", level=0, print.matrix = FALSE) 
+D1 <- cbind(D, fit)
 D1 <- within(D1, {
   PredictedProb <- plogis(fit)
   LL <- plogis(fit - (1.96 * se.fit))
   UL <- plogis(fit + (1.96 * se.fit))
   }
 )
+
+
 
 calcPosteriorForProportion <- function(successes, total, a, b)
   {
