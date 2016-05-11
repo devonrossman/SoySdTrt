@@ -27,7 +27,6 @@ library(pbkrtest)
 library(fields)
 library(arm)
 library(AICcmodavg)
-#install.packages("AICcmodavg")
 
 rm(list = ls())
 
@@ -36,10 +35,10 @@ estBetaParams <- function(mu, var) {
   beta <- alpha * (1 / mu - 1)
   return(params = list(alpha = alpha, beta = beta))
 }
-estBetaParams(0.50, 0.1)
+estBetaParams(.5, 0.05)
 
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
-Y3<-subset(Y, !(Y$Diff8=="NA" ) #& !(Y$sdtrt=="CON")
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA" ) & !(Y$sdtrt=="CON")
                 )
 
 Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
@@ -58,25 +57,34 @@ output<-rbind.data.frame(output,output_i)
 output$soycost<-as.numeric(output$i)
 output$Diff<-as.numeric(output$DIFF)
 
+binarfun<-function(x)
+{
+  ifelse(x < 0, 0, ifelse((x > 0), 1, 1))
+  }
+N<-as.vector(binarfun(output$Diff))
+output<-cbind(N, output)
 D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), summarise,
-               N    = length(Diff),
+            count=length(Diff),
                mean = mean(Diff),
+            Nmean = mean(N),
                sd   = sd(Diff),
-               se   = sd / sqrt(N),
+            sdN = sd(N),
+               se   = sd / sqrt(count),
+            seN = sdN / sqrt(count),
             scale=sd*0.551328895))
-D$N <- ifelse(D$mean < 0, 0, ifelse((D$mean > 0), 1, 1))
+#D$N <- ifelse(D$mean < 0, 0, ifelse((D$mean > 0), 1, 1))
 D$var <- as.factor(D$var)
 
-m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | var), D, binomial
+m <- glmer(Nmean ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | var), D, binomial
 )
 
 #McFaddens Pseudo R-squared
 #1 - (Residual variance / Null variance)
 1-(729.98/1318.59)
 #fit<-predict(m, type=c("response"))
-se.fit<-predictSE.merMod(m, D, se.fit = TRUE, type = "response", level=0, print.matrix = FALSE) 
-v1<-rep.int(1, 840)
-D1 <- cbind(D, se.fit)
+predictwse<-predictSE.merMod(m, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+#v1<-rep.int(1, 840)
+D1 <- cbind(D, predictwse)
 D1 <- within(D1, {
   PredictedProb <- plogis(fit)
   LL <- plogis(fit - (1.96 * se.fit))
@@ -86,17 +94,20 @@ D1 <- within(D1, {
 #subD <- expand.grid(sdtrt = c("F", "F+I", "F+I+N"), Low5wk = c(56.6, 59.5 ))
 #predictSE.merMod(m, newdata=subD, se.fit = TRUE, type = "response", level=0, print.matrix = FALSE) 
 
+    calcBetaMean <- function(aa, bb) { BetaMean <- (aa)/(aa + bb); return(BetaMean); }
+     calcBetaSd   <- function(aa, bb) { BetaSd <- sqrt((aa * bb)/(((aa + bb)^2) * (aa + bb + 1))); return(BetaSd); }
+
 calcPosteriorForProportion <- function(successes, total, a, b)
   {
      # Adapted from triplot() in the LearnBayes package
      # Plot the prior, likelihood and posterior:
-     likelihood_a = successes + 1; likelihood_b = total - successes + 1
+     #likelihood_a = successes + 1; likelihood_b = total - successes + 1
      posterior_a = a + successes;  posterior_b = b + total - successes
-     theta = seq(0.005, 0.995, length = 500)
-     prior = dbeta(theta, a, b)
-     likelihood = dbeta(theta, likelihood_a, likelihood_b)
-     posterior  = dbeta(theta, posterior_a, posterior_b)
-     m = max(c(prior, likelihood, posterior))
+     #theta = seq(0.005, 0.995, length = 500)
+     #prior = dbeta(theta, a, b)
+     #likelihood = dbeta(theta, likelihood_a, likelihood_b)
+     #posterior  = dbeta(theta, posterior_a, posterior_b)
+    #  m = max(c(prior, likelihood, posterior))
     # plot(theta, posterior, type = "l", ylab = "Density", lty = 2, lwd = 3,
         #  main = paste("beta(", a, ",", b, ") prior, B(", total, ",", successes, ") data,",
          # "beta(", posterior_a, ",", posterior_b, ") posterior"), ylim = c(0, m), col = "red")
@@ -105,41 +116,173 @@ calcPosteriorForProportion <- function(successes, total, a, b)
     # legend(x=0.8,y=m, c("Prior", "Likelihood", "Posterior"), lty = c(3, 1, 2),
         #  lwd = c(3, 3, 3), col = c("green", "blue", "red"))
      # Print out summary statistics for the prior, likelihood and posterior:
-     calcBetaMode <- function(aa, bb) { BetaMode <- (aa - 1)/(aa + bb - 2); return(BetaMode); }
-     calcBetaMean <- function(aa, bb) { BetaMean <- (aa)/(aa + bb); return(BetaMean); }
-     calcBetaSd   <- function(aa, bb) { BetaSd <- sqrt((aa * bb)/(((aa + bb)^2) * (aa + bb + 1))); return(BetaSd); }
-     prior_mode      <- calcBetaMode(a, b)
-     likelihood_mode <- calcBetaMode(likelihood_a, likelihood_b)
-     posterior_mode  <- calcBetaMode(posterior_a, posterior_b)
-     prior_mean      <- calcBetaMean(a, b)
-     likelihood_mean <- calcBetaMean(likelihood_a, likelihood_b)
+     #calcBetaMode <- function(aa, bb) { BetaMode <- (aa - 1)/(aa + bb - 2); return(BetaMode); }
+ 
+     #prior_mode      <- calcBetaMode(a, b)
+     #likelihood_mode <- calcBetaMode(likelihood_a, likelihood_b)
+     #posterior_mode  <- calcBetaMode(posterior_a, posterior_b)
+     #prior_mean      <- calcBetaMean(a, b)
+     #likelihood_mean <- calcBetaMean(likelihood_a, likelihood_b)
      posterior_mean  <- calcBetaMean(posterior_a, posterior_b)
      return(posterior_mean)
-     prior_sd        <- calcBetaSd(a, b)
-     likelihood_sd   <- calcBetaSd(likelihood_a, likelihood_b)
+     #prior_sd        <- calcBetaSd(a, b)
+     #likelihood_sd   <- calcBetaSd(likelihood_a, likelihood_b)
      posterior_sd    <- calcBetaSd(posterior_a, posterior_b)
-     print(paste("mode for prior=",prior_mode,", for likelihood=",likelihood_mode,", for posterior=",posterior_mode))
-     print(paste("mean for prior=",prior_mean,", for likelihood=",likelihood_mean,", for posterior=",posterior_mean))
-     print(paste("sd for prior=",prior_sd,", for likelihood=",likelihood_sd,", for posterior=",posterior_sd))
+     return(posterior_sd)
+     #print(paste("mode for prior=",prior_mode,", for likelihood=",likelihood_mode,", for posterior=",posterior_mode))
+     #print(paste("mean for prior=",prior_mean,", for likelihood=",likelihood_mean,", for posterior=",posterior_mean))
+     #print(paste("sd for prior=",prior_sd,", for likelihood=",likelihood_sd,", for posterior=",posterior_sd))
   }
 
 D2<-D1
 output<-as.data.frame(NULL)
 for(i in D1$PredictedProb){
-         PROB<-calcPosteriorForProportion(i,1,0.75,0.75)
-output_i<-cbind.data.frame(D2, PROB)
+PROB<-calcPosteriorForProportion(i,1,1,1)
+#The desirable beta distribution is alpha=2,beta=2
+output_i<-as.data.frame(PROB)
+output<-rbind.data.frame(output, output_i)
+}
+YLplus<-paste(D1$YL, D1$var, D1$sdtrt, D1$soycost)
+D1$YLplus<-YLplus
+stuff<-as.data.frame(cbind(output$PROB, D1$PredictedProb, D1$N))
+rownames(stuff)<-D1$YLplus
+colnames(stuff)<-c("Posterior", "Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+D1<-cbind(D1,output)
+D1test <-( ddply(D1, c("YL", "sdtrt"), summarise,
+               meanN    = mean(D1$N),
+               meanposterior = mean(D1$PROB),
+               meanProb = mean(D1$PredictedProb),
+               sd   = sd(PredictedProb),
+            scale=sd*0.551328895))
+YLplus<-paste(D1test$YL, D1test$sdtrt)
+stuff<-as.data.frame(cbind(D1test$meanposterior, D1test$meanProb, D1test$meanN))
+rownames(stuff)<-D1test$YLplus
+colnames(stuff)<-c("Posterior", "Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+#output$soycost<-as.numeric(output$i)
+#output$Diff<-as.numeric(output$DIFF)
+#v1<-rep.int(1, 840)
+#v075<-rep.int(0.75, 840)
+
+alfredo<-calcPosteriorForProportion(10, 25, 2, 2)
+summary(alfredo)
+```
+
+Simplified work?
+```{r}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(LearnBayes)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+#install.packages("AICcmodavg")
+
+rm(list = ls())
+
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA" ) & !(Y$sdtrt=="CON")
+                )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
 output<-rbind.data.frame(output,output_i)
 }
-
-
 output$soycost<-as.numeric(output$i)
 output$Diff<-as.numeric(output$DIFF)
-v1<-rep.int(1, 840)
-v075<-rep.int(0.75, 840)
 
-alfredo<-calcPosteriorForProportion(5, 25, 1, 0)
+binarfun<-function(x)
+{
+  ifelse(x < 0, 0, ifelse((x > 0), 1, 1))
+  }
+N<-as.vector(binarfun(output$Diff))
+output<-cbind(N, output)
+D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), summarise,
+            count=length(Diff),
+               mean = mean(Diff),
+            Nmean = mean(N),
+               sd   = sd(Diff),
+            sdN = sd(N),
+               se   = sd / sqrt(count),
+            seN = sdN / sqrt(count),
+            scale=sd*0.551328895))
 
-summary(alfredo)
+    calcBetaMean <- function(aa, bb) { BetaMean <- (aa)/(aa + bb); return(BetaMean); }
+     calcBetaSd   <- function(aa, bb) { BetaSd <- sqrt((aa * bb)/(((aa + bb)^2) * (aa + bb + 1))); return(BetaSd); }
+
+calcPosteriorForProportion <- function(successes, total, a, b)
+  {  posterior_a = a + successes;  posterior_b = b + total - successes
+     posterior_mean  <- calcBetaMean(posterior_a, posterior_b)
+     return(posterior_mean)
+     posterior_sd    <- calcBetaSd(posterior_a, posterior_b)
+     return(posterior_sd)
+  }
+
+D2<-D
+output<-as.data.frame(NULL)
+for(i in D2$Nmean)
+  {
+PROB<-calcPosteriorForProportion(i,1,1,1)
+#The desirable beta distribution may be either alpha=2,beta=2 or both equal 1...
+output_i<-as.data.frame(PROB)
+output<-rbind.data.frame(output, output_i)
+}
+
+YLplus<-paste(D2$YL, D2$var, D2$sdtrt, D2$soycost)
+D2$YLplus<-YLplus
+stuff<-as.data.frame(cbind(output$PROB, D$Nmean))
+rownames(stuff)<-D2$YLplus
+colnames(stuff)<-c("Posterior", "Actual")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+D2<-cbind(D,output)
+D1test <-( ddply(D1, c("YL", "sdtrt"), summarise,
+               meanN    = mean(D1$N),
+               meanposterior = mean(D1$PROB),
+               meanProb = mean(D1$PredictedProb),
+               sd   = sd(PredictedProb),
+            scale=sd*0.551328895))
+YLplus<-paste(D1test$YL, D1test$sdtrt)
+stuff<-as.data.frame(cbind(D1test$meanposterior, D1test$meanProb, D1test$meanN))
+rownames(stuff)<-D1test$YLplus
+colnames(stuff)<-c("Posterior", "Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+
 ```
 
 
