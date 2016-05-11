@@ -1,0 +1,192 @@
+---
+title: "FinalStats"
+author: "Devon"
+date: "May 11, 2016"
+output: html_document
+---
+2014-2015
+```{r, echo=FALSE}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") & !(Y$Year=="2013")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | location/rep) + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+rsq <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(formula, data=d)
+  return(summary(fit)$r.square)
+} 
+summary(m)
+predictwse<-predictSE.merMod(m, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+
+D1 <- cbind(D, predictwse)
+D1 <- within(D1, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+
+D1$locst<-paste(D1$location, D1$sdtrt)
+scatterplot(PredictedProb ~ Low5wk | locst, data=D1,
+  	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
+   main="Enhanced Scatter Plot")
+stuff<-as.data.frame(cbind(D1$PredictedProb, D1$N))
+D1$YLplus<-paste(D1$Year, D1$location, D1$var, D1$sdtrt, D1$rep, D1$soycost)
+rownames(stuff)<-D1$YLplus
+colnames(stuff)<-c("Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+#wald.test(b = coef(lgt), Sigma = vcov(lgt), Terms=11:12)
+write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob1415.csv"))
+
+```
+
+2013
+```{r, echo=FALSE}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") & (Y$Year=="2013")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | location/rep) + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+rsq <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(formula, data=d)
+  return(summary(fit)$r.square)
+} 
+summary(m)
+predictwse<-predictSE.merMod(m, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+
+D1 <- cbind(D, predictwse)
+D1 <- within(D1, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+
+D1$locst<-paste(D1$location, D1$sdtrt)
+scatterplot(PredictedProb ~ Low5wk | locst, data=D1,
+  	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
+   main="Enhanced Scatter Plot")
+stuff<-as.data.frame(cbind(D1$PredictedProb, D1$N))
+D1$YLplus<-paste(D1$Year, D1$location, D1$var, D1$sdtrt, D1$rep, D1$soycost)
+rownames(stuff)<-D1$YLplus
+colnames(stuff)<-c("Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+#wald.test(b = coef(lgt), Sigma = vcov(lgt), Terms=11:12)
+write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob13.csv"))
+
+```
+
+Graphical Representation of 
+```{r, echo=FALSE}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(vcd)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob13.csv"))
+Y1 <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob1415.csv"))
+par(mfrow=c(1,2))
+boxplot(Y$PredictedProb, border = "red", add = TRUE)
+boxplot(Y1$PredictedProb)
+histogram(Y$PredictedProb)
+histogram(Y1$PredictedProb)
+Y2<-cbind(Y1$PredictedProb, Y1$sdtrtcomp)
+```

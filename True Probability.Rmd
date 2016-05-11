@@ -48,7 +48,7 @@ D <-( ddply(output, c("location", "var", "sdtrt", "soycost", "Low5wk", "YL"), su
             scale=sd*0.551328895))
 D$N <- ifelse(D$mean < 0, 0, ifelse((D$mean > 0), 1, 1))
 D$var <- as.factor(D$var)
-m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location) + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location/re) + (1 | var), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
 rsq <- function(formula, data, indices) {
   d <- data[indices,] # allows boot to select sample 
   fit <- lm(formula, data=d)
