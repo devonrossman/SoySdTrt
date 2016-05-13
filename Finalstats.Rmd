@@ -4,6 +4,70 @@ author: "Devon"
 date: "May 11, 2016"
 output: html_document
 ---
+
+```{r, echo=FALSE}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+
+mprob <- glmer(N~ soycost + location + var + sdtrt + (1 | YL:rep), data=D, family=binomial)
+summary (mprob)
+BIC(mprob)
+
+predictglm<-predictSE.merMod (mprob, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+Dglm <- cbind(D, predictglm)
+Dglm <- within(Dglm, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+
+```
+
+
 All Years
 ```{r, echo=FALSE}
 library(car)
@@ -50,10 +114,17 @@ D<-output
 D$N<-D$Diff
 D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
-m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location:var) + location + (1 | location:rep), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+
+m <- glmer(N ~ sdtrt + soycost + (1 | YL) + (1 | YL:var) + (1 | YL:rep), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
 
 summary(m)
-BIC(m)
+ relgrad <- with(m@optinfo$derivs,solve(Hessian,gradient))
+ max(abs(relgrad))
+ 
+#Double Check More Precise Convergence Value
+tt <- getME(m,"theta")
+ll <- getME(m,"lower")
+min(tt[ll==0])
 
 predictwse<-predictSE.merMod(m, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
 
@@ -75,7 +146,8 @@ rownames(stuff)<-D1$YLplus
 colnames(stuff)<-c("Predicted Probability", "Break Even")
 pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
          #cluster_rows=hc.rows, 
-         clustering_method="average")
+         clustering_method="average", 
+         fontsize=4)
 
 #wald.test(b = coef(lgt), Sigma = vcov(lgt), Terms=11:12)
 write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
@@ -98,14 +170,19 @@ Dprob$plus<-paste(Dprob$location, Dprob$sdtrt)
 rownames(Dmeans)<-Dprob$plus
 colnames(Dmeans)<-c("Predicted Probability", "Observed Breakeven %")
 pheatmap(Dmeans, show_rownames = TRUE, show_colnames = TRUE,
-         #cluster_rows=hc.rows, 
-         clustering_method="average")
+         cluster_rows=FALSE, 
+         clustering_method="average",
+         fontsize=6
+         )
 
 
 print(Dprob)          
 write.csv(Dprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/MeanProb.csv"))
 
 ```
+
+
+
 
 
 2014-2015
