@@ -4,7 +4,7 @@ author: "Devon"
 date: "May 11, 2016"
 output: html_document
 ---
-2014-2015
+All Years
 ```{r, echo=FALSE}
 library(car)
 library(scatterplot3d)
@@ -25,6 +25,111 @@ library(pbkrtest)
 library(fields)
 library(arm)
 library(AICcmodavg)
+library(multcomp)
+library(nlme)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+m <- glmer(N ~ sdtrt + Low5wk + soycost + (1 | location:var) + location + (1 | location:rep), data = D, family = binomial, control = glmerControl(optimizer = "bobyqa"))
+
+summary(m)
+BIC(m)
+
+predictwse<-predictSE.merMod(m, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+
+D1 <- cbind(D, predictwse)
+D1 <- within(D1, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+
+D1$locst<-paste(D1$location, D1$sdtrt)
+scatterplot(PredictedProb ~ Low5wk | locst, data=D1,
+  	xlab="5 wk Low Temps", ylab="Probability of Breaking Even", legend.coords = "topleft",
+   main="Enhanced Scatter Plot")
+stuff<-as.data.frame(cbind(D1$PredictedProb, D1$N))
+D1$YLplus<-paste(D1$Year, D1$location, D1$var, D1$sdtrt, D1$rep, D1$soycost)
+rownames(stuff)<-D1$YLplus
+colnames(stuff)<-c("Predicted Probability", "Break Even")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+#wald.test(b = coef(lgt), Sigma = vcov(lgt), Terms=11:12)
+write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+D1.6<-subset(D1, (D1$soycost=="6") #& !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+D1.10<-subset(D1, (D1$soycost=="10") #& !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+D1.14<-subset(D1, (D1$soycost=="14") #& !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+
+Dprob <-( ddply(D1.6, c("location", "sdtrt"), summarise,
+            count=length(Diff),
+               meanProb = mean(PredictedProb),
+            meanN=mean(N)))
+Dmeans<-cbind(Dprob$meanProb, Dprob$meanN)
+Dprob$plus<-paste(Dprob$location, Dprob$sdtrt)
+rownames(Dmeans)<-Dprob$plus
+colnames(Dmeans)<-c("Predicted Probability", "Observed Breakeven %")
+pheatmap(Dmeans, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+
+print(Dprob)          
+write.csv(Dprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/MeanProb.csv"))
+
+```
+
+
+2014-2015
+``{r, echo=FALSE}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(multcomp)
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") & !(Y$Year=="2013")
@@ -53,6 +158,12 @@ rsq <- function(formula, data, indices) {
   fit <- lm(formula, data=d)
   return(summary(fit)$r.square)
 } 
+
+
+#https://onlinecourses.science.psu.edu/stat504/book/export/html/161   <-- This refers to linear predictor residual estimation and stuff...
+
+#summary(glht(m, linfct = mcp(sdtrt = c("F = 0", "'F+I'= 0")))) <- this is related to parameter fitting, I think...
+
 summary(m)
 predictwse<-predictSE.merMod(m, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
 
@@ -82,7 +193,7 @@ write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob1415
 ```
 
 2013
-```{r, echo=FALSE}
+``{r, echo=FALSE}
 library(car)
 library(scatterplot3d)
 library(lme4)
@@ -159,7 +270,7 @@ write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob13.c
 ```
 
 Graphical Representation of 
-```{r, echo=FALSE}
+``{r, echo=FALSE}
 library(car)
 library(scatterplot3d)
 library(lme4)
@@ -180,13 +291,14 @@ library(fields)
 library(arm)
 library(AICcmodavg)
 library(vcd)
+library(multcomp)
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob13.csv"))
 Y1 <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob1415.csv"))
 par(mfrow=c(1,2))
 boxplot(Y$PredictedProb, border = "red", add = TRUE)
 boxplot(Y1$PredictedProb)
-histogram(Y$PredictedProb)
-histogram(Y1$PredictedProb)
+hist(Y$PredictedProb)
+hist(Y1$PredictedProb)
 Y2<-cbind(Y1$PredictedProb, Y1$sdtrtcomp)
 ```
