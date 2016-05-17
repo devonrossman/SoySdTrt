@@ -217,15 +217,20 @@ library(arm)
 library(AICcmodavg)
 library(multcomp)
 library(nlme)
+library(corrplot)
+#update.packages("corrplot")
+#install.packages("corrplot")
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
 Y3<-subset(Y, !(Y$Diff=="NA") #& !(Y$sdtrt=="CON") 
            #& !(Y$Year=="2013")
            )
-Y5<-as.matrix(Y3$)
-rcorr( , type="pearson")
-
-
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot(corr2, method="circle")
+corr1<-rcorr(Y5, type="pearson")
+print(corr1)
 ```
 
 
