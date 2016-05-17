@@ -50,8 +50,9 @@ D<-output
 D$N<-D$Diff
 D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
-
-mprob <- glmer(N~ soycost + location + var + sdtrt + (1 | YL:rep), data=D, family=binomial)
+D$soycostsc<-scale(D$soycost)
+D$Low5wksc<-scale(D$Low5wk)
+mprob <- glmer(N ~ soycostsc + location + sdtrt + var + (1 | YL:rep), data=D, family=binomial)
 summary (mprob)
 BIC(mprob)
 
@@ -63,7 +64,16 @@ Dglm <- within(Dglm, {
   UL <- plogis(fit + (1.96 * se.fit))
   }
 )
-write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+
+Dglmprob <-( ddply(Dglm, c("soycost", "location", "var", "sdtrt"), summarise,
+            RRmean=mean(RR),
+               meanProb = mean(PredictedProb),
+            meanN6=mean(N),
+            ULmean=mean(LL),
+              LLmean=mean(UL)))
+
+
+write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
 
 ```
 
@@ -148,9 +158,6 @@ pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
          #cluster_rows=hc.rows, 
          clustering_method="average", 
          fontsize=4)
-
-#wald.test(b = coef(lgt), Sigma = vcov(lgt), Terms=11:12)
-write.csv(D1, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
 D1.6<-subset(D1, (D1$soycost=="6") #& !(Y$sdtrt=="CON") 
            #& !(Y$Year=="2013")
            )
@@ -161,11 +168,19 @@ D1.14<-subset(D1, (D1$soycost=="14") #& !(Y$sdtrt=="CON")
            #& !(Y$Year=="2013")
            )
 
-Dprob <-( ddply(D1.6, c("location", "sdtrt"), summarise,
+Dprob6 <-( ddply(D1.6, c("location", "sdtrt"), summarise,
             count=length(Diff),
                meanProb = mean(PredictedProb),
-            meanN=mean(N)))
-Dmeans<-cbind(Dprob$meanProb, Dprob$meanN)
+            meanN6=mean(N)))
+Dprob10 <-( ddply(D1.10, c("location", "sdtrt"), summarise,
+            count=length(Diff),
+               meanProb = mean(PredictedProb),
+            meanN10=mean(N)))
+Dprob14 <-( ddply(D1.14, c("location", "sdtrt"), summarise,
+            count=length(Diff),
+               meanProb = mean(PredictedProb),
+            meanN14=mean(N)))
+Dmeans<-cbind(Dprob$meanProb, Dprob$meanProb, Dprob$meanProb, Dprob$meanN10)
 Dprob$plus<-paste(Dprob$location, Dprob$sdtrt)
 rownames(Dmeans)<-Dprob$plus
 colnames(Dmeans)<-c("Predicted Probability", "Observed Breakeven %")
@@ -175,14 +190,43 @@ pheatmap(Dmeans, show_rownames = TRUE, show_colnames = TRUE,
          fontsize=6
          )
 
-
 print(Dprob)          
 write.csv(Dprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/MeanProb.csv"))
 
 ```
 
+```{r}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") #& !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(Y3$)
+rcorr( , type="pearson")
 
 
+```
 
 
 2014-2015
