@@ -1,0 +1,526 @@
+---
+title: "DryBeanFinal"
+author: "Devon"
+date: "May 6, 2016"
+output: html_document
+---
+
+Agglomerative, Hierarchical Clustering
+based on Standardized Data, Goodness of fit
+```{r}
+library(scales)
+library(ggplot2)
+library(plyr)
+library(vegan)
+library(cluster)
+library(ade4)
+library(stats)
+#install.packages("ade4")
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & !(Y$Var=="Z"))
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwghttrial),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE),
+            meanemerge = mean(emergetrial, na.rm=TRUE)))
+Dend<-scale(as.matrix(Y4 [,c("meanwght", "meanlngth", "meanarea", "meanemerge")]))    
+rownames(Dend)=Y4$Title
+bray <- (dist(Dend, method = "maximum", diag = FALSE, upper = FALSE))
+bray.v<-as.vector(bray)
+bray.dis <- agnes(bray, method="average", diss = TRUE) 
+bray.disv<-as.vector(bray.dis)
+# very simple dendrogram
+plot(bray.dis)
+#Cophenetic Distances and Correlation
+bray.ave.co <- cophenetic(bray.dis)
+# vectorize the cophenetic distances
+bray.ave.cov <- as.vector(bray.ave.co) 
+cor(bray.ave.cov, bray.v)
+plot(y = bray.ave.cov, x = bray.v)
+
+#Mantel Test
+mant1 <- mantel.rtest(bray, bray.ave.co, nrepet=1000)
+plot(mant1)
+summary(mant1)
+
+#RMSE
+rmse <- function(x, dis.matrix){
+ r.m.s.e <- 1- (mean(as.vector(x)^2))/var(as.vector(dis.matrix))
+ return(r.m.s.e)
+}
+bray.co.resid <- bray.ave.cov - bray.v
+rmse(bray.co.resid, bray.v)
+```
+
+
+Agglomerative, Hierarchical Clustering
+based on Standardized Data, Chord
+```{r}
+library(scales)
+library(ggplot2)
+library(plyr)
+library(vegan)
+library(cluster)
+library(ade4)
+library(stats)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & !(Y$Var=="Z"))
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwghttrial),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE),
+            meanemerge = mean(emergetrial, na.rm=TRUE)))
+Dend<-scale(as.matrix(Y4 [,c("meanwght", "meanlngth", "meanarea", "meanemerge")]))    
+rownames(Dend)=Y4$Title
+chord = function (s,diag) {
+  # G.Nesslage, B.Maurer
+  # computes chord distance
+  # diag == TRUE returns full distance matrix
+  # diag == FALSE returns distance matrix as dist object
+  n = nrow(s)
+  p <- ncol(s)
+  D = matrix(0,n,n)
+  m <- 1
+  
+  for (i in 1:(n-1)){
+    for (j in (i+1):n){
+      nd <- matrix(0,p,1)
+      dd1 <- matrix(0,p,1)
+      dd2 <- matrix(0,p,1)
+      for (k in 1:p){
+        nd[k,]<- s[i,k]*s[j,k]
+        dd1[k,] <- (s[i,k])^2
+        dd2[k,] <- (s[j,k])^2
+      }
+      D[i,j] <- sqrt(2*(1-(sum(nd)/sqrt(sum(dd1)*
+                                          sum(dd2)))))
+      D[j,i] <- D[i,j]
+    }
+  }
+  
+  if(diag==FALSE) {D=as.dist(D)}
+  return (D)
+}
+rownames(Dend)=Y4$Title
+chord1 <- chord(Dend,diag=FALSE)
+chord.v <- as.vector(chord1)
+label <- rownames(Dend)
+chord.dis <- agnes(chord1, method="average", diss = TRUE) 
+chord.disv<-as.vector(chord.dis)
+# very simple dendrogram
+plot(chord.dis, ask = FALSE, which.plots = 2,labels = label)
+
+#Cophenetic Distance and Correlation
+chord.ave.co <- cophenetic(chord.dis)
+chord.ave.cov <- as.vector(chord.ave.co)
+cor(chord.ave.cov, chord.v)
+plot(y = chord.ave.cov, x = chord.v)
+
+#RMSE
+rmse <- function(x, dis.matrix){
+ r.m.s.e <- 1- (mean(as.vector(x)^2))/var(as.vector(dis.matrix))
+ return(r.m.s.e)
+}
+chord.co.resid <- chord.ave.cov - chord.v
+rmse(chord.co.resid, chord.v)
+
+#Bray doesn't work with negative values
+#bray.dis <- vegdist(as.matrix(Dend), method = "bray")
+#bray.ave.dis <- agnes(bray.dis, diss = TRUE) 
+#plot(bray.ave.dis, ask = FALSE, which.plots = 2,labels = label)
+
+#canberra doesn't work with negative values
+#bray.dis <- vegdist(as.matrix(Dend), method = "brayberra")
+#bray.ave.dis <- agnes(bray.dis, diss = TRUE) 
+#plot(bray.ave.dis, ask = FALSE, which.plots = 2,labels = label)
+#bray.ave.co <- cophenetic(bray.ave.dis) 
+#bray.ave.cov <- as.vector(bray.ave.co) # vectorize the cophenetic distances
+```
+
+Agglomerative, Hierarchical Clustering
+Dendogram based on Raw Data Relative to Trial
+```{r}
+library(scales)
+library(ggplot2)
+library(plyr)
+library(vegan)
+library(cluster)
+library(ade4)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & !(Y$Var=="Z"))
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwght, na.rm=TRUE),
+            meanlngth = mean(rtlngth, na.rm=TRUE),
+            meanarea = mean(rtarea, na.rm=TRUE)))
+Dend<-as.matrix(Y4 [,c("meanwght", "meanlngth", "meanarea")])
+rownames(Dend)=Y4$Title
+bray <- (vegdist(Dend, method = "bray", diag = FALSE, upper = FALSE))
+bray.v <- as.vector(bray)
+#print(bray)
+bray.v<-as.vector(bray)
+#print(bray.v)           
+bray.dis <- agnes(bray, method="ward", diss = TRUE) 
+bray.disv<-as.vector(bray.dis)
+# very simple dendrogram
+plot(bray.dis)
+
+#Cophenetic Distances and Correlation
+bray.ave.co <- cophenetic(bray.dis)
+bray.ave.cov <- as.vector(bray.ave.co) # vectorize the cophenetic distances
+cor(bray.ave.cov, bray.v)
+plot(y = bray.ave.cov, x = bray.v)
+
+#Mantel Test
+mant1 <- mantel.rtest(bray, bray.ave.co, nrepet=1000)
+plot(mant1)
+mant1
+
+#RMSE
+rmse <- function(x, dis.matrix){
+ r.m.s.e <- 1- (mean(as.vector(x)^2))/var(as.vector(dis.matrix))
+ return(r.m.s.e)
+}
+bray.co.resid <- bray.ave.cov - bray.v
+rmse(bray.co.resid, bray.v)
+
+```
+
+
+
+Divisive Clustering
+Raw Data Relative to Trial
+```{r}
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA"))
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwght, na.rm=TRUE),
+            meanlngth = mean(rtlngth, na.rm=TRUE),
+            meanarea = mean(rtarea, na.rm=TRUE), meanemerge = mean(Emerge, na.rm=TRUE)))
+Dend<-scale(as.matrix(Y4 [,c("meanwght", "meanlngth", "meanarea", "meanemerge")]))
+rownames(Dend)=Y4$Title
+k.pot <- kmeans(as.matrix(Dend),5,100)
+k.pot$cluster
+as.matrix(k.pot$cluster)
+
+```   
+
+```
+library(d3heatmap)
+library(stats)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCup.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA"))
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwght, na.rm=TRUE),
+            meanlngth = mean(rtlngth, na.rm=TRUE),
+            meanarea = mean(rtarea, na.rm=TRUE), meanemerge = mean(Emerge, na.rm=TRUE)))
+stuff<-cbind(Y4$meanwght, Y4$meanlngth, Y4$meanarea, Y4$meanemerge)
+rownames(stuff)<-Y4$Title
+
+d3heatmap(stuff, scale = "column", labCol=c("Root dry weight", "Root length", "Root area", "Emergence"), cexCol=0.6, cexRow = 0.8, distfun=chord, hclustfun=hclust, Colv=as.dendogram(hc.rows), dendrogram = "row",
+    color = "Blues")
+as.dendogram(hc.rows)
+
+```
+
+
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & (Y$Var=="RH"))
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "tisolate"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE), meanemerge = mean(emergetrial, na.rm=TRUE)))
+stuff<-cbind(Y4$meanwght, Y4$meanlngth, Y4$meanarea, Y4$meanemerge)
+rownames(stuff)<-Y4$tisolate
+colnames(stuff)<-c("Root Dry Weight", "Root Length", "Root Area", "Emergence")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE, fontsize_row=9,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+Heatmap of 4 Cup Assay Variables No Chord - default
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & (Y$Var=="Z"))
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE), meanemerge = mean(emergetrial, na.rm=TRUE)))
+stuff<-cbind(Y4$meanwght, Y4$meanlngth, Y4$meanarea, Y4$meanemerge)
+rownames(stuff)<-Y4$Title
+colnames(stuff)<-c("Root Dry Weight", "Root Length", "Root Area", "Emergence")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+
+Heatmap of 4 Cup Assay Variables with CHORD
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & (Y$Var=="RH"))
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE), meanemerge = mean(emergetrial, na.rm=TRUE)))
+stuff<-cbind(Y4$meanwght, Y4$meanlngth, Y4$meanarea, Y4$meanemerge)
+rownames(stuff)<-Y4$Title
+colnames(stuff)<-c("Root Dry Weight", "Root Length", "Root Area", "Emergence")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE, fontsize_row=9,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCupApr19.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & (Y$Var=="Z"))
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwght),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE), meanemerge = mean(emergetrial, na.rm=TRUE)))
+stuff<-cbind(Y4$meanwght, Y4$meanlngth, Y4$meanarea, Y4$meanemerge)
+rownames(stuff)<-Y4$Title
+chord = function (s,diag) {
+  # G.Nesslage, B.Maurer
+  # computes chord distance
+  # diag == TRUE returns full distance matrix
+  # diag == FALSE returns distance matrix as dist object
+  n = nrow(s)
+  p <- ncol(s)
+  D = matrix(0,n,n)
+  m <- 1
+  
+  for (i in 1:(n-1)){
+    for (j in (i+1):n){
+      nd <- matrix(0,p,1)
+      dd1 <- matrix(0,p,1)
+      dd2 <- matrix(0,p,1)
+      for (k in 1:p){
+        nd[k,]<- s[i,k]*s[j,k]
+        dd1[k,] <- (s[i,k])^2
+        dd2[k,] <- (s[j,k])^2
+      }
+      D[i,j] <- sqrt(2*(1-(sum(nd)/sqrt(sum(dd1)*
+                                          sum(dd2)))))
+      D[j,i] <- D[i,j]
+    }
+  }
+  
+  if(diag==FALSE) {D=as.dist(D)}
+  return (D)
+  
+}
+chord1 <- chord(stuff,diag=FALSE)
+hc.rows<-hclust(chord1, method="average")
+colnames(stuff)<-c("Root Dry Weight", "Root Length", "Root Area", "Emergence")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+Seed Rot
+```{r}
+library(pheatmap)
+library(plyr)
+library(ggplot2)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllRotMay9.csv"))
+Y3<-subset(Y, !(Y$SevPercent=="NA") & (Y$Var=="Z"))
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "tisolate"), summarise,
+               N    = length(SevPercent),
+            meansp = mean(SevPercent, na.rm=TRUE),
+            means = mean(Sev, na.rm=TRUE)))
+stuff<-as.data.frame(cbind(Y4$meansp, Y4$means))
+rownames(stuff)<-Y4$tisolate
+colnames(stuff)<-c("Severity, as Percent", "severity")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+```
+
+
+Seed Rot Zorro, two temperatures
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllRotMay9.csv"))
+Y20<-subset(Y, #!(Y$SevPercent=="NA") & 
+              (Y$Var=="Z") & Y$Temp=="20")
+Y26<-subset(Y, #!(Y$SevPercent=="NA") & 
+              (Y$Var=="Z") & Y$Temp=="26")
+Sev26<-Y26$SevPercent
+Y3<-cbind(Y20, Sev26)
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(SevPercent),
+            sev20 = mean(SevPercent, na.rm=TRUE),
+            sev26 = mean(Sev26, na.rm=TRUE)))
+stuff<-as.data.frame(cbind(Y4$sev20, Y4$sev26))
+rownames(stuff)<-Y4$Title
+colnames(stuff)<-c("Severity 20C", "Severity 26C")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+Seed Rot Red Hawk, two temperatures
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllRotMay9.csv"))
+Y20<-subset(Y, #!(Y$SevPercent=="NA") & 
+              (Y$Var=="RH") & Y$Temp=="20")
+Y26<-subset(Y, #!(Y$SevPercent=="NA") & 
+              (Y$Var=="RH") & Y$Temp=="26")
+Sev26<-Y26$SevPercent
+Y3<-cbind(Y20, Sev26)
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(SevPercent),
+            sev20 = mean(SevPercent, na.rm=TRUE),
+            sev26 = mean(Sev26, na.rm=TRUE)))
+stuff<-as.data.frame(cbind(Y4$sev20, Y4$sev26))
+rownames(stuff)<-Y4$Title
+colnames(stuff)<-c("Severity 20C", "Severity 26C")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+
+```
+
+
+Seed Rot, Red Hawk, Clade, Two Temperatures
+```{r}
+library(pheatmap)
+library(plyr)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllRotMay9.csv"))
+Y$Clade<-as.factor(Y$Clade)
+Y20<-subset(Y, #!(Y$SevPercent=="NA") & 
+              (Y$Var=="RH") & Y$Temp=="20")
+Y26<-subset(Y, #!(Y$SevPercent=="NA") & 
+              (Y$Var=="RH") & Y$Temp=="26")
+Sev26<-Y26$SevPercent
+Y3<-cbind(Y20, Sev26)
+Y3$tisolate<-paste(Y3$Title,Y3$Trt)
+Y4<-( ddply(Y3, c("Var", "Clade"), summarise,
+               N    = length(SevPercent),
+            sev20 = mean(SevPercent, na.rm=TRUE),
+            sev26 = mean(Sev26, na.rm=TRUE)))
+            sev20se=
+            sev26se=
+stuff<-as.data.frame(cbind(Y4$sev20, Y4$sev26))
+rownames(stuff)<-Y4$Clade
+colnames(stuff)<-c("Severity 20C", "Severity 26C")
+pheatmap(stuff, show_rownames = TRUE, show_colnames = TRUE,
+         #cluster_rows=hc.rows, 
+         clustering_method="average")
+plot(stuff$`Severity 20C`)
+
+```
+
+
+
+
+
+```
+
+
+```{r}
+library(scales)
+library(ggplot2)
+library(plyr)
+library(vegan)
+library(cluster)
+library(ade4)
+library(stats)
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/DryBean/AllCup.csv"))
+Y3<-subset(Y, !(Y$rtarea=="NA") & !(Y$rtwght=="NA") & !(Y$Var=="Z"))
+Y4<-( ddply(Y3, c("Var", "Title"), summarise,
+               N    = length(rtwghttrial),
+            meanwght = mean(rtwghttrial, na.rm=TRUE),
+            meanlngth = mean(rtlngthtrial, na.rm=TRUE),
+            meanarea = mean(rtareatrial, na.rm=TRUE),
+            meanemerge = mean(emergetrial, na.rm=TRUE)))
+Dend<-scale(as.matrix(Y4 [,c("meanwght", "meanlngth", "meanarea", "meanemerge")]))    
+rownames(Dend)=Y4$Title
+chord = function (s,diag) {
+  # G.Nesslage, B.Maurer
+  # computes chord distance
+  # diag == TRUE returns full distance matrix
+  # diag == FALSE returns distance matrix as dist object
+  n = nrow(s)
+  p <- ncol(s)
+  D = matrix(0,n,n)
+  m <- 1
+  
+  for (i in 1:(n-1)){
+    for (j in (i+1):n){
+      nd <- matrix(0,p,1)
+      dd1 <- matrix(0,p,1)
+      dd2 <- matrix(0,p,1)
+      for (k in 1:p){
+        nd[k,]<- s[i,k]*s[j,k]
+        dd1[k,] <- (s[i,k])^2
+        dd2[k,] <- (s[j,k])^2
+      }
+      D[i,j] <- sqrt(2*(1-(sum(nd)/sqrt(sum(dd1)*
+                                          sum(dd2)))))
+      D[j,i] <- D[i,j]
+    }
+  }
+  
+  if(diag==FALSE) {D=as.dist(D)}
+  return (D)
+}
+rownames(Dend)=Y4$Title
+chord1 <- chord(Dend,diag=FALSE)
+chord.v <- as.vector(chord1)
+label <- rownames(Dend)
+chord.dis <- agnes(chord1, method="average", diss = TRUE) 
+chord.disv<-as.vector(chord.dis)
+# very simple dendrogram
+plot(chord.dis, ask = FALSE, which.plots = 2,labels = label)
+hc.rows<-hclust(chord1, method="average")
+colnames(Dend)<-c("Root Dry Weight", "Root Length", "Root Area", "Emergence")
+pheatmap(Dend, show_rownames = TRUE, show_colnames = TRUE,
+         cluster_rows=hc.rows, 
+         clustering_method="average")
+```
+
+Y5<-( ddply(Y4, c("Var", "Title"), summarise,     
+            scalewght=scale(meanwght, center=TRUE, scale=TRUE),
+scalelngth=scale(meanlngth, center=TRUE, scale=TRUE),
+scalearea=scale(meanarea, center=TRUE, scale=TRUE),
+scaleemerge=scale(meanemerge, center=TRUE, scale=TRUE)))
+sdrtwght   = sd(rtwght),
+            sdrtlngth=sd(rtlngth),
+            sdrtarea=sd(rtarea),
+            sdemerge=sd(Emerge),
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
