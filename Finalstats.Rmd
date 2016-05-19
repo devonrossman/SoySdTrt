@@ -228,10 +228,54 @@ Y3<-subset(Y, !(Y$Diff=="NA") #& !(Y$sdtrt=="CON")
 Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
 colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
 corr2<-cor(Y5, use="pairwise.complete.obs")
-corrplot(corr2, method="circle")
+corrplot(corr2, method="number")
 corr1<-rcorr(Y5, type="pearson")
 print(corr1)
 ```
+
+Saginaw only
+```{r}
+library(car)
+library(scatterplot3d)
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(plot3D)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+library(corrplot)
+#update.packages("corrplot")
+#install.packages("corrplot")
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & (Y$location=="SAG") 
+           & (Y$Year=="2015")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$fpfi, Y3$ac))
+colnames(Y5) <- c("Yield", "PR", "Stand", "RDW", "SCN", "Aphids")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+par(mar=c(4,1,1,1))
+Y6<-as.data.frame(Y5)
+plot(Y6)
+corrplot.mixed(corr2,tl.offset = 0, tl.cex=0.8, mar=c(3,3,3,3))
+corr1<-rcorr(Y5, type="pearson")
+print(corr1)
+
+```
+
 
 
 2014-2015
@@ -428,3 +472,4 @@ hist(Y$PredictedProb)
 hist(Y1$PredictedProb)
 Y2<-cbind(Y1$PredictedProb, Y1$sdtrtcomp)
 ```
+
