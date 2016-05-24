@@ -104,13 +104,11 @@ colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", 
 corr2<-cor(Y5, use="pairwise.complete.obs")
 corrplot(corr2, method="number")
 corr1<-rcorr(Y5, type="pearson")
-print(corr1)
+#print(corr1)
 ```
 
 #Saginaw 2015 only
 ```{r, echo=FALSE}
-library(car)
-library(scatterplot3d)
 library(lme4)
 library(aod)
 library(Rcpp)
@@ -121,9 +119,6 @@ library(scales)
 library(HSAUR)
 library(Hmisc)
 library(drc)
-library(plot3D)
-library(boot)
-library(pheatmap)
 library(pbkrtest) 
 library(fields)
 library(arm)
@@ -131,6 +126,7 @@ library(AICcmodavg)
 library(multcomp)
 library(nlme)
 library(corrplot)
+library(graphics)
 #update.packages("corrplot")
 #install.packages("corrplot")
 rm(list = ls())
@@ -141,15 +137,18 @@ Y3<-subset(Y, !(Y$Diff=="NA") & (Y$location=="SAG")
 Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$fpfi, Y3$ac))
 colnames(Y5) <- c("Yield", "PR", "Stand", "RDW", "SCN", "Aphids")
 corr2<-cor(Y5, use="pairwise.complete.obs")
-par(mar=c(4,1,1,1))
 Y6<-as.data.frame(Y5)
 plot(Y6)
-corrplot.mixed(corr2,tl.offset = 0, tl.cex=0.8, mar=c(3,3,3,3))
+par(mfrow=c(1,1), plt=c(0.9,1,0.9,1))
+dev.off()
+corrplot(corr2, method="number", tl.offset = 0, tl.pos="d", tl.cex=0.8, cl.pos="b")
 corr1<-rcorr(Y5, type="pearson")
-print(corr1)
+#print(corr1)
 
 ```
 
+
+#Density Plot for SoySeedTrt
 ```{r, echo=FALSE}
 library(ggplot2)
 library(plyr)
@@ -167,7 +166,7 @@ g+
 geom_vline(data=y4, aes(xintercept=meanProb, color="Median"))+ 
   geom_vline(data=y4, aes(xintercept=medianProb, color="Mean"))+
 facet_grid(location~sdtrt)+
-  theme(axis.text=element_text(size=10))+
+  theme(axis.text=element_text(size=7))+
   labs(x="Predicted Probability of Breaking Even", y="Density", color="Averages")+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
   
@@ -175,3 +174,29 @@ facet_grid(location~sdtrt)+
 
 
 ```
+
+#Field Isolate Chart
+```{r, echo=FALSE}
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/FieldIsolates_May24.csv"))
+YO<-subset(Y, !(Species=="") & (Pathogen=="O"))
+YF<-subset(Y, !(Species=="") & (Pathogen=="F"))
+     
+    g1<-ggplot(YO, aes(x=Species))+
+geom_bar(data=YO, aes(fill=Location))+ 
+theme_light()+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5))+
+labs(x="", y="Number of Isolates")+
+ylim(0, 40)
+
+     g2<-ggplot(YO, aes(x=Species))+
+geom_bar(data=YF, aes(x=Species, fill=Location))+
+theme_bw()+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5))+
+labs(x="", y="Number of Isolates")+ 
+ylim(0, 40)
+
+multiplot(g1, g2, cols=1)
+
+```
+
+
