@@ -1,0 +1,265 @@
+---
+title: "FinalStats"
+author: "Devon"
+date: "May 11, 2016"
+output: html_document
+---
+
+#Model Fitting
+```{r, echo=FALSE}
+library(lme4)
+library(stats)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+D$soycostsc<-scale(D$soycost)
+
+#Random Effects Fitting for BINOMIAL Distribution
+a1 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1|sdtrt:var) + (1 | rep/YL), data=D, family=binomial)
+a2 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1 | rep/YL), data=D, family=binomial)
+a3 <- glmer(N ~ soycostsc + sdtrt + (1|var) + (1 | rep/YL), data=D, family=binomial)
+a4 <- glmer(N ~ soycostsc + sdtrt + (1 | rep/YL), data=D, family=binomial)
+atest<-anova(a1, a2, a3, a4)
+print(atest)
+
+#Random Effects Fitting for Proc Mixed
+a1 <- lmer(phcont ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1|sdtrt:var) + (1 | rep/YL), data=D)
+a2 <- lmer(phcont ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1 | rep/YL), data=D)
+a3 <- lmer(phcont ~ soycostsc + sdtrt + (1|var) + (1 | rep/YL), data=D)
+a4 <- lmer(phcont ~ soycostsc + sdtrt + (1 | rep/YL), data=D)
+atest<-anova(a1, a2, a3, a4)
+print(atest)
+
+
+#Fixed Effects Model Fitting for MLE
+f1 <- glmer(N ~ soycostsc + sdtrt +var+ sdtrt:var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
+f2 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
+f3 <- glmer(N ~ soycostsc + sdtrt +var+ location + (1 | rep/location), data=D, family=binomial)
+f4 <- glmer(N ~ soycostsc + sdtrt + location + (1 | rep/location), data=D, family=binomial)
+f5<-glmer(N ~ location + sdtrt + (1 | rep/location), data=D, family=binomial)
+ftest<-anova(f1, f2, f3, f4, f5)
+print(ftest)
+
+#Fixed Effects Model Fitting for MLE
+t1 <- lmer(yieldcont ~ sdtrt + var+ sdtrt:var+ location + (1 | rep/location), data=D)
+t2 <- lmer(yieldcont ~ sdtrt + (1|var)+(1|sdtrt:var)+ (1|sdtrt:location) + (1 | rep/location), data=D)
+gtest<-anova(t1, t2)
+print(gtest)
+```
+
+
+#Produce CSV of Mean RR and Predicted Prob, by factors
+```{r, echo=FALSE}
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(drc)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+D$soycostsc<-scale(D$soycost)
+D$Low5wksc<-scale(D$Low5wk)
+mprob <- glmer(N ~ soycostsc + location + sdtrt + var + (1 | YL:rep), data=D, family=binomial)
+summary (mprob)
+BIC(mprob)
+
+predictglm<-predictSE.merMod (mprob, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+Dglm <- cbind(D, predictglm)
+Dglm <- within(Dglm, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbFull.csv"))
+
+Dglmprob <-( ddply(Dglm, c("soycost", "location", "var", "sdtrt"), summarise,
+            RRmean=mean(RR),
+               meanProb = mean(PredictedProb),
+            meanN6=mean(N),
+            ULmean=mean(LL),
+              LLmean=mean(UL)))
+
+
+write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+
+```
+
+
+#Correlation Plots
+```{r, echo=FALSE}
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(drc)
+library(boot)
+library(pheatmap)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+library(corrplot)
+#update.packages("corrplot")
+#install.packages("corrplot")
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") #& !(Y$sdtrt=="CON") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot(corr2, method="number")
+corr1<-rcorr(Y5, type="pearson")
+#print(corr1)
+```
+
+#Saginaw 2015 only
+```{r, echo=FALSE}
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(drc)
+library(pbkrtest) 
+library(fields)
+library(arm)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+library(corrplot)
+library(graphics)
+#update.packages("corrplot")
+#install.packages("corrplot")
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & (Y$location=="SAG") 
+           & (Y$Year=="2015")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$fpfi, Y3$ac))
+colnames(Y5) <- c("Yield", "PR", "Stand", "RDW", "SCN", "Aphids")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+Y6<-as.data.frame(Y5)
+plot(Y6)
+par(mfrow=c(1,1), plt=c(0.9,1,0.9,1))
+dev.off()
+corrplot(corr2, method="number", tl.offset = 0, tl.pos="d", tl.cex=0.8, cl.pos="b")
+corr1<-rcorr(Y5, type="pearson")
+#print(corr1)
+
+```
+
+
+#Density Plot for SoySeedTrt
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbFull.csv"))
+y3<-subset(Y, (Y$soycost=="10"))
+y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
+            meanProb=mean(PredictedProb),
+            medianProb=median(PredictedProb)))
+g<-ggplot(y3, aes(x=PredictedProb))
+g+
+  #geom_histogram(aes(y=..density..),bins=20)+
+  theme_light()+
+  geom_density()+
+geom_vline(data=y4, aes(xintercept=meanProb, color="Median"))+ 
+  geom_vline(data=y4, aes(xintercept=medianProb, color="Mean"))+
+facet_grid(location~sdtrt)+
+  theme(axis.text=element_text(size=7))+
+  labs(x="Predicted Probability of Breaking Even", y="Density", color="Averages")+
+  scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
+  
+
+
+
+```
+
+#Field Isolate Chart
+```{r, echo=FALSE}
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/FieldIsolates_May24.csv"))
+YO<-subset(Y, !(Species=="") & (Pathogen=="O"))
+YF<-subset(Y, !(Species=="") & (Pathogen=="F"))
+     
+    g1<-ggplot(YO, aes(x=Species))+
+geom_bar(data=YO, aes(fill=Location))+ 
+theme_light()+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5))+
+labs(x="", y="Number of Isolates")+
+ylim(0, 40)
+
+     g2<-ggplot(YO, aes(x=Species))+
+geom_bar(data=YF, aes(x=Species, fill=Location))+
+theme_bw()+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5))+
+labs(x="", y="Number of Isolates")+ 
+ylim(0, 40)
+
+multiplot(g1, g2, cols=1)
+
+```
+
+
