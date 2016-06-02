@@ -67,7 +67,6 @@ gtest<-anova(t1, t2)
 print(gtest)
 ```
 
-
 #Produce CSV of Mean RR and Predicted Prob, by factors
 ```{r, echo=FALSE}
 library(lme4)
@@ -134,7 +133,6 @@ write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Pr
 
 ```
 
-
 #Correlation Plots
 ```{r, echo=FALSE}
 library(lme4)
@@ -185,7 +183,6 @@ library(drc)
 library(pbkrtest) 
 library(fields)
 library(arm)
-library(AICcmodavg)
 library(multcomp)
 library(nlme)
 library(corrplot)
@@ -207,7 +204,6 @@ dev.off()
 corrplot(corr2, method="number", tl.offset = 0, tl.pos="d", tl.cex=0.8, cl.pos="b")
 corr1<-rcorr(Y5, type="pearson")
 #print(corr1)
-
 ```
 
 
@@ -225,17 +221,13 @@ g<-ggplot(y3, aes(x=PredictedProb))
 g+
   #geom_histogram(aes(y=..density..),bins=20)+
   theme_light()+
-  geom_density()+
+  geom_density(adjust=2)+
 geom_vline(data=y4, aes(xintercept=meanProb, color="Median"))+ 
   geom_vline(data=y4, aes(xintercept=medianProb, color="Mean"))+
 facet_grid(location~sdtrt)+
   theme(axis.text=element_text(size=7))+
   labs(x="Predicted Probability of Breaking Even", y="Density", color="Averages")+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
-  
-
-
-
 ```
 
 #Field Isolate Chart
@@ -261,5 +253,3 @@ ylim(0, 40)
 multiplot(g1, g2, cols=1)
 
 ```
-
-
