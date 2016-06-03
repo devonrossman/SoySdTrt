@@ -9,6 +9,8 @@ output: html_document
 ```{r, echo=FALSE}
 library(lme4)
 library(stats)
+library(Rmisc)
+library(ggplot2)
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
@@ -33,6 +35,18 @@ D$N<-D$Diff
 D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
 D$soycostsc<-scale(D$soycost)
+
+#Accounting for similarities in Density Plot
+hist1<-as.data.frame(cbind(D$N, D$location, D$Year, D$sdtrt))
+H1<-subset(hist1, D$location=="HIL")
+I1<-subset(hist1, D$location=="IN2")
+colnames(H1)=c("N", "location", "Year", "sdtrt")
+colnames(I1)=c("N", "location", "Year", "sdtrt")
+g1<-ggplot(data=H1, aes(x=N))+
+  geom_histogram()
+g2<-ggplot(data=I1, aes(x=N))+
+  geom_histogram()
+multiplot(g1, g2, cols=2)
 
 #Random Effects Fitting for BINOMIAL Distribution
 a1 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1|sdtrt:var) + (1 | rep/YL), data=D, family=binomial)
@@ -253,3 +267,119 @@ ylim(0, 40)
 multiplot(g1, g2, cols=1)
 
 ```
+
+
+#Greenhouse and Field Emergence/RDW Comparisons
+```{r, echo=FALSE}
+library(ggplot2)
+library(lsmeans)
+library(lmer)
+library(Rmisc)
+rm(list = ls())
+#2015
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           & (Y$Year=="2015")
+           )
+Y3$var<-as.factor(Y3$var)
+lm1<-lmer(Scpubcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
+a<-summary(lsm1)
+a<-as.data.frame(a)
+a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
+
+g<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
+)+
+  geom_point()+
+  labs(y="Plant Stand")
+
+#GH
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
+Y3<-subset(Y, !(Y$RDWcont=="NA") & !(Y$Var=="Sloan")
+           #& (Y$PathTitle=="Control") 
+           & !(Y$sdtrt=="CON")
+           )
+Y3$Var<-as.factor(Y3$Var)
+lm1<-lmer(Emergediffinsdtrt ~ sdtrt*Var + (1 | Rep/Exp), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt | Var)
+a<-summary(lsm1)
+a<-as.data.frame(a$lsmeans)
+agh<-a
+gh<-ggplot(agh, aes(y=lsmean, x=Var, color=sdtrt)
+)+ geom_point()+
+  labs(y="Emergence")
+
+#2014
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           & (Y$Year=="2014")
+           )
+Y3$var<-as.factor(Y3$var)
+lm1<-lmer(Scpubcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
+a<-summary(lsm1)
+a<-as.data.frame(a)
+a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
+
+g14<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
+)+
+  geom_point()+
+  labs(y="Plant Stand 2014")
+
+
+##Root Dry Weight
+#2015
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           & (Y$Year=="2015")
+           )
+Y3$var<-as.factor(Y3$var)
+lm1<-lmer(RDWcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
+a<-summary(lsm1)
+a<-as.data.frame(a)
+a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
+
+grdw<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
+)+
+  geom_point()+
+  labs(y="RDW field")
+
+#GH 
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
+Y3<-subset(Y, !(Y$RDWdiffinsdtrt=="NA") & !(Y$Var=="Sloan") 
+           #& (Y$PathTitle=="Control")
+           & !(Y$sdtrt=="CON")
+           )
+Y3$Var<-as.factor(Y3$Var)
+lm1<-lmer(RDWdiffinsdtrt ~ sdtrt*Var + (1 | Rep/Exp), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt | Var)
+a<-summary(lsm1)
+a<-as.data.frame(a$lsmeans)
+agh<-a
+ghrdw<-ggplot(agh, aes(y=lsmean, x=Var, color=sdtrt)
+)+ geom_point()+
+labs(y="RDW GH")
+
+#2014
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           & (Y$Year=="2014")
+           )
+Y3$var<-as.factor(Y3$var)
+lm1<-lmer(RDWcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
+a<-summary(lsm1)
+a<-as.data.frame(a)
+a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
+
+grdw14<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
+)+
+  geom_point()+
+  labs(y="RDW 2014")
+
+multiplot(g, grdw, gh, ghrdw, g14, grdw14, cols=3)
+
+```
+
+
