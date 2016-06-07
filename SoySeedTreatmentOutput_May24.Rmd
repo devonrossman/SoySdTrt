@@ -158,8 +158,6 @@ library(Rmisc)
 library(scales)
 library(Hmisc)
 library(drc)
-library(boot)
-library(pheatmap)
 library(pbkrtest) 
 library(fields)
 library(arm)
@@ -170,6 +168,8 @@ library(corrplot)
 #update.packages("corrplot")
 #install.packages("corrplot")
 rm(list = ls())
+
+#Overall
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
 Y3<-subset(Y, !(Y$Diff=="NA") #& !(Y$sdtrt=="CON") 
            #& !(Y$Year=="2013")
@@ -180,10 +180,80 @@ corr2<-cor(Y5, use="pairwise.complete.obs")
 corrplot(corr2, method="number")
 corr1<-rcorr(Y5, type="pearson")
 #print(corr1)
+
+#Allegan
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="ALE") 
+           & (Y$Year=="2015")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
+
+#Hillsdale
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="HIL") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
+
+#Ingham
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="IN2") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
+
+#Lenawee
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="LEN") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
+
+#Saginaw
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="SAG") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
+
+#Sanilac
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="SAN") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
+
+#St. Joseph
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="STJ") 
+           #& !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+corrplot.mixed(corr2)
 ```
 
 #Saginaw 2015 only
-```{r, echo=FALSE}
+``{r, echo=FALSE}
 library(lme4)
 library(aod)
 library(Rcpp)
@@ -273,7 +343,7 @@ multiplot(g1, g2, cols=1)
 ```{r, echo=FALSE}
 library(ggplot2)
 library(lsmeans)
-library(lmer)
+library(lme4)
 library(Rmisc)
 rm(list = ls())
 #2015
@@ -291,7 +361,7 @@ a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
 g<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
 )+
   geom_point()+
-  labs(y="Plant Stand")
+  labs(y="Plant Stand Relative to NTC")
 
 #GH
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
@@ -307,7 +377,7 @@ a<-as.data.frame(a$lsmeans)
 agh<-a
 gh<-ggplot(agh, aes(y=lsmean, x=Var, color=sdtrt)
 )+ geom_point()+
-  labs(y="Emergence")
+  labs(y="Emergence Relative to NTC")
 
 #2014
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
@@ -324,7 +394,7 @@ a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
 g14<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
 )+
   geom_point()+
-  labs(y="Plant Stand 2014")
+  labs(y="Plant Stand Relative to NTC 2014")
 
 
 ##Root Dry Weight
@@ -343,7 +413,7 @@ a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
 grdw<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
 )+
   geom_point()+
-  labs(y="RDW field")
+  labs(y="Field Root Dry Weight \n Relative to NTC")
 
 #GH 
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
@@ -359,7 +429,7 @@ a<-as.data.frame(a$lsmeans)
 agh<-a
 ghrdw<-ggplot(agh, aes(y=lsmean, x=Var, color=sdtrt)
 )+ geom_point()+
-labs(y="RDW GH")
+labs(y="Greenhouse Root Dry Weight \n Relative to NTC")
 
 #2014
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
