@@ -347,22 +347,21 @@ library(lme4)
 library(Rmisc)
 rm(list = ls())
 #2015
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
-           & (Y$Year=="2015")
+           & (Y$Year=="2015") 
            )
 Y3$var<-as.factor(Y3$var)
 lm1<-lmer(Scpubcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
-a<-summary(lsm1)
-a<-as.data.frame(a$lsmeans)
-a12<-subset(a, !(a$var=="3") & !(a$var=="4"))
+a<-as.data.frame(summary(lsm1))
+a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
 
-g<-ggplot(a12, aes(y=lsmean, x=var, color=sdtrt)
+g<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
 )+
   geom_point()+
-  geom_errorbar(aes( ymin=(a12$lsmean-(1.96*a12$SE)), ymax=(a12$lsmean+(1.96*a12$SE)), width=0.2))+
-  labs(y="Plant Stand Relative to NTC")
+   geom_errorbar(aes( ymin=(a12$lsmeans.lsmean-1.96*a12$lsmeans.SE), ymax=(a12$lsmeans.lsmean+1.96*a12$lsmeans.SE), width=0.2))+
+  labs(y="Field Emergence \n Relative to NTC")
   
 #GH
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
@@ -373,18 +372,17 @@ Y3<-subset(Y, !(Y$RDWcont=="NA") & !(Y$Var=="Sloan")
 Y3$Var<-as.factor(Y3$Var)
 lm1<-lmer(Emergediffinsdtrt ~ sdtrt*Var + (1 | Rep/Exp), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt | Var)
-a<-summary(lsm1)
-a<-as.data.frame(a$lsmeans)
-agh<-a
+ab<-summary(lsm1)
+ab<-as.data.frame(ab$lsmeans)
+agh<-ab
 gh<-ggplot(agh, aes(y=lsmean, x=Var, color=sdtrt)
-)+ geom_point()+ 
-geom_errorbar(aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE), width=0.2)+
-  labs(y="Emergence Relative to NTC")
+)+ 
+geom_point()+ 
+geom_errorbar(aes(ymin=agh$lsmean-1.96*agh$SE, ymax=agh$lsmean+1.96*agh$SE), width=0.2)+
+  labs(y="Greenhouse Emergence \n Relative to NTC")
 
-
-##Root Dry Weight
 #2015
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
            & (Y$Year=="2015")
            )
@@ -393,12 +391,12 @@ lm1<-lmer(RDWcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
 a<-summary(lsm1)
 a<-as.data.frame(a)
-a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
+a13<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
 
-grdw<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
+grdw<-ggplot(a13, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
 )+
   geom_point()+
-   geom_errorbar(aes( ymin=a12$lsmeans.lsmean-1.96*a12$lsmeans.SE, ymax=a12$lsmeans.lsmean+1.96*a12$lsmeans.SE), width=0.2)+
+   geom_errorbar(aes( ymin=a13$lsmeans.lsmean-1.96*a13$lsmeans.SE, ymax=a13$lsmeans.lsmean+1.96*a13$lsmeans.SE), width=0.2)+
   labs(y="Field Root Dry Weight \n Relative to NTC")
 
 #GH 
@@ -412,13 +410,14 @@ lm1<-lmer(RDWdiffinsdtrt ~ sdtrt*Var + (1 | Rep/Exp), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt | Var)
 a<-summary(lsm1)
 a<-as.data.frame(a$lsmeans)
-agh<-a
-ghrdw<-ggplot(agh, aes(y=lsmean, x=Var, color=sdtrt)
+agh1<-a
+ghrdw<-ggplot(agh1, aes(y=lsmean, x=Var, color=sdtrt)
 )+ geom_point()+
-geom_errorbar(aes( ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a12$lsmeans.SE), width=0.2)+
+geom_errorbar(aes( ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE), width=0.2)+
 labs(y="Greenhouse Root Dry Weight \n Relative to NTC")
 
-multiplot(g, grdw, gh, ghrdw, cols=1)
+structure(gh)
+pq<-multiplot(g, grdw, gh, ghrdw, cols=2)
 
 ```
 
