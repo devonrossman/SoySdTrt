@@ -305,23 +305,25 @@ facet_grid(location~sdtrt)+
 
 #Field Isolate Chart
 ```{r, echo=FALSE}
+library(ggplot2)
+library(Rmisc)
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/FieldIsolates_May24.csv"))
 YO<-subset(Y, !(Species=="") & (Pathogen=="O"))
 YF<-subset(Y, !(Species=="") & (Pathogen=="F"))
      
-    g1<-ggplot(YO, aes(x=Species))+
+    g1<-ggplot(YO, aes(x=Spec))+
 geom_bar(data=YO, aes(fill=Location))+ 
 theme_light()+
-theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5))+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+
-ylim(0, 40)
+ylim(0, 30)
 
-     g2<-ggplot(YO, aes(x=Species))+
-geom_bar(data=YF, aes(x=Species, fill=Location))+
+     g2<-ggplot(YO, aes(x=Spec))+
+geom_bar(data=YF, aes(x=Spec, fill=Location))+
 theme_bw()+
-theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5))+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+ 
-ylim(0, 40)
+ylim(0, 30)
 
 multiplot(g1, g2, cols=1)
 
