@@ -6,7 +6,7 @@ output: html_document
 ---
 
 #Model Fitting
-```{r, echo=FALSE}
+``{r, echo=FALSE}
 library(lme4)
 library(stats)
 library(Rmisc)
@@ -66,12 +66,12 @@ print(atest)
 
 
 #Fixed Effects Model Fitting for MLE
-f1 <- glmer(N ~ soycostsc + sdtrt +var+ sdtrt:var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
+f1 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
 f2 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
 f3 <- glmer(N ~ soycostsc + sdtrt +var+ location + (1 | rep/location), data=D, family=binomial)
 f4 <- glmer(N ~ soycostsc + sdtrt + location + (1 | rep/location), data=D, family=binomial)
 f5<-glmer(N ~ location + sdtrt + (1 | rep/location), data=D, family=binomial)
-ftest<-anova(f1, f2, f3, f4, f5)
+ftest<-anova(f1, f3, f4, f5)
 print(ftest)
 
 #Fixed Effects Model Fitting for MLE
@@ -323,7 +323,7 @@ geom_bar(data=YF, aes(x=Spec, fill=Location))+
 theme_bw()+
 theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+ 
-ylim(0, 30)
+ylim(0, 50)
 
 multiplot(g1, g2, cols=1)
 
