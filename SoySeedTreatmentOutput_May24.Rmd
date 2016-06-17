@@ -79,7 +79,7 @@ t1 <- lmer(yieldcont ~ sdtrt + var+ sdtrt:var+ location + (1 | rep/location), da
 t2 <- lmer(yieldcont ~ sdtrt + (1|var)+(1|sdtrt:var)+ (1|sdtrt:location) + (1 | rep/location), data=D)
 gtest<-anova(t1, t2)
 print(gtest)
-```
+``
 
 #Produce CSV of Mean RR and Predicted Prob, by factors
 ```{r, echo=FALSE}
