@@ -37,18 +37,6 @@ D$var <- as.factor(D$var)
 D$Year <- as.factor(D$Year)
 D$soycostsc<-scale(D$soycost)
 
-#Accounting for similarities in Density Plot
-hist1<-as.data.frame(cbind(D$N, D$location, D$Year, D$sdtrt))
-H1<-subset(hist1, D$location=="HIL")
-I1<-subset(hist1, D$location=="IN2")
-colnames(H1)=c("N", "location", "Year", "sdtrt")
-colnames(I1)=c("N", "location", "Year", "sdtrt")
-g1<-ggplot(data=H1, aes(x=N))+
-  geom_histogram()
-g2<-ggplot(data=I1, aes(x=N))+
-  geom_histogram()
-multiplot(g1, g2, cols=2)
-
 #Random Effects Fitting for BINOMIAL Distribution
 a1 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1|sdtrt:var) + (1 | rep/YL), data=D, family=binomial)
 a2 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1 | rep/YL), data=D, family=binomial)
@@ -56,31 +44,7 @@ a3 <- glmer(N ~ soycostsc + sdtrt + (1|var) + (1 | rep/YL), data=D, family=binom
 a4 <- glmer(N ~ soycostsc + sdtrt + (1 | rep/YL), data=D, family=binomial)
 atest<-anova(a1, a2, a3, a4)
 print(atest)
-
-#Random Effects Fitting for Proc Mixed
-a1 <- lmer(phcont ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1|sdtrt:var) + (1 | rep/YL), data=D)
-a2 <- lmer(phcont ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1 | rep/YL), data=D)
-a3 <- lmer(phcont ~ soycostsc + sdtrt + (1|var) + (1 | rep/YL), data=D)
-a4 <- lmer(phcont ~ soycostsc + sdtrt + (1 | rep/YL), data=D)
-atest<-anova(a1, a2, a3, a4)
-print(atest)
-
-
-#Fixed Effects Model Fitting for MLE
-f1 <- lm(N ~ soycostsc + sdtrt +var + Year+ location + sdtrt:location, data=D, family=binomial)
-f2 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location/Year), data=D, family=binomial)
-f3 <- glmer(N ~ soycostsc + sdtrt +var+ location + (1 | rep/location), data=D, family=binomial)
-f4 <- glmer(N ~ soycostsc + sdtrt + location/Year + (1 | rep/location/Year), data=D, family=binomial)
-f5<-glmer(N ~ location + sdtrt + (1 | rep/location), data=D, family=binomial)
-ftest<-anova(f1, f2)
-print(ftest)
-
-#Fixed Effects Model Fitting for MLE
-t1 <- lmer(yieldcont ~ sdtrt + var+ sdtrt:var+ location + (1 | rep/location), data=D)
-t2 <- lmer(yieldcont ~ sdtrt + (1|var)+(1|sdtrt:var)+ (1|sdtrt:location) + (1 | rep/location), data=D)
-gtest<-anova(t1, t2)
-print(gtest)
-``
+```
 
 #Produce CSV of Mean RR and Predicted Prob, by factors
 ```{r, echo=FALSE}
@@ -197,6 +161,7 @@ Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5w
 colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps")
 corr2<-cor(Y5, use="pairwise.complete.obs")
 corrplot.mixed(corr2)
+corr1<-rcorr(Y5, type="pearson")
 
 #Hillsdale
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
@@ -207,6 +172,7 @@ Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5w
 colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
 corr2<-cor(Y5, use="pairwise.complete.obs")
 corrplot.mixed(corr2)
+corr1<-rcorr(Y5, type="pearson")
 
 #Ingham
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.csv"))
@@ -445,118 +411,3 @@ structure(ghrdw)
 pq<-multiplot(g, grdw, gh, ghrdw, cols=2)
 
 ```
-
-``{r, echo=FALSE}
-
-#2014
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
-Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
-           & (Y$Year=="2014")
-           )
-Y3$var<-as.factor(Y3$var)
-lm1<-lmer(RDWcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
-lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
-a<-summary(lsm1)
-a<-as.data.frame(a)
-a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
-
-grdw14<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
-)+
-  geom_point()+
-  labs(y="RDW 2014")
-
-#2014
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
-Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
-           & (Y$Year=="2014")
-           )
-Y3$var<-as.factor(Y3$var)
-lm1<-lmer(Scpubcont ~ sdtrt*var*YL + (1 | rep/YL), data=Y3)
-lsm1<-lsmeans(lm1, pairwise~sdtrt:var | var)
-a<-summary(lsm1)
-a<-as.data.frame(a)
-a12<-subset(a, !(a$lsmeans.var=="3") & !(a$lsmeans.var=="4"))
-
-g14<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
-)+
-  geom_point()+
-  labs(y="Plant Stand Relative to NTC 2014")
-
-
-
-```
-
-
-#Produce CSV of Mean RR and Predicted Prob, No random Factors
-```{r, echo=FALSE}
-library(lme4)
-library(aod)
-library(Rcpp)
-library(ggplot2)
-library(plyr)
-library(Rmisc)
-library(scales)
-library(Hmisc)
-library(drc)
-library(AICcmodavg)
-library(multcomp)
-library(nlme)
-library(fields)
-rm(list = ls())
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
-Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
-           #& (Y$Year=="2015")
-           )
-Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
-Diff<-function(x){
-  cry<-(Y3$stcost/(Y3$yield*x))
-  diff<-(Y3$RR-cry)
-  return(diff)
-}
-output<-as.data.frame(NULL)
-for(i in c(6,10,14)){
-DIFF<-Diff(i)
-output_i<-cbind.data.frame(Y3, DIFF, i)
-output<-rbind.data.frame(output,output_i)
-}
-output$soycost<-as.numeric(output$i)
-output$Diff<-as.numeric(output$DIFF)
-D<-output
-D$N<-D$Diff
-D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
-D$var <- as.factor(D$var)
-D$soycostsc<-scale(D$soycost)
-D$Low5wksc<-scale(D$Low5wk)
-mprob <- lm(N ~ soycostsc + location + sdtrt + var, data=D)
-summary (mprob)
-BIC(mprob)
-
-predictglm<-predict.lm (mprob, D, se.fit = TRUE) 
-Dglm <- cbind(D, predictglm)
-Dglm <- within(Dglm, {
-  PredictedProb <- plogis(fit)
-  LL <- plogis(fit - (1.96 * se.fit))
-  UL <- plogis(fit + (1.96 * se.fit))
-  }
-)
-
-
-y3<-subset(Dglm, (Dglm$soycost=="10"))
-y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
-            meanProb=mean(PredictedProb),
-            medianProb=median(PredictedProb)))
-g<-ggplot(y3, aes(x=PredictedProb))
-g+
-  #geom_histogram(aes(y=..density..),bins=20)+
-  theme_light()+
-  geom_density(adjust=2)+
-geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
-  geom_vline(data=y4, aes(xintercept=medianProb, color="Median"))+
-facet_grid(location~sdtrt)+
-  theme(axis.text=element_text(size=7))+
-  labs(x="Predicted Probability of Breaking Even", y="Density", color="Averages")+
-  scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
-```
-
-
-
