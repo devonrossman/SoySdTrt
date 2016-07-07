@@ -6,7 +6,7 @@ output: html_document
 ---
 
 #Model Fitting
-``{r, echo=FALSE}
+```{r, echo=FALSE}
 library(lme4)
 library(stats)
 library(Rmisc)
@@ -34,6 +34,7 @@ D<-output
 D$N<-D$Diff
 D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
+D$Year <- as.factor(D$Year)
 D$soycostsc<-scale(D$soycost)
 
 #Accounting for similarities in Density Plot
@@ -66,12 +67,12 @@ print(atest)
 
 
 #Fixed Effects Model Fitting for MLE
-f1 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
-f2 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location), data=D, family=binomial)
+f1 <- glmer(N ~ soycostsc + sdtrt +var + Year+ location + sdtrt:location+ (1 | rep/location/Year), data=D, family=binomial)
+f2 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location/Year), data=D, family=binomial)
 f3 <- glmer(N ~ soycostsc + sdtrt +var+ location + (1 | rep/location), data=D, family=binomial)
-f4 <- glmer(N ~ soycostsc + sdtrt + location + (1 | rep/location), data=D, family=binomial)
+f4 <- glmer(N ~ soycostsc + sdtrt + location/Year + (1 | rep/location/Year), data=D, family=binomial)
 f5<-glmer(N ~ location + sdtrt + (1 | rep/location), data=D, family=binomial)
-ftest<-anova(f1, f3, f4, f5)
+ftest<-anova(f4, f5)
 print(ftest)
 
 #Fixed Effects Model Fitting for MLE
@@ -99,7 +100,7 @@ library(fields)
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
-           #& !(Y$Year=="2013")
+           #& (Y$Year=="2015")
            )
 Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
 Diff<-function(x){
@@ -121,7 +122,7 @@ D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
 D$soycostsc<-scale(D$soycost)
 D$Low5wksc<-scale(D$Low5wk)
-mprob <- glmer(N ~ soycostsc + location + sdtrt + var + (1 | YL:rep), data=D, family=binomial)
+mprob <- glmer(N ~ soycostsc + location + sdtrt + var + (1 | rep/location), data=D, family=binomial)
 summary (mprob)
 BIC(mprob)
 
@@ -133,9 +134,13 @@ Dglm <- within(Dglm, {
   UL <- plogis(fit + (1.96 * se.fit))
   }
 )
-write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbFull.csv"))
+write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
 
-Dglmprob <-( ddply(Dglm, c("soycost", "location", "var", "sdtrt"), summarise,
+#Combined Prob13.csv, Prob14.csv, Prob15.csv
+#UploadedBelow
+#Yprob <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Probcombined.csv"))
+
+Dglmprob <-( ddply(Dglm, c("soycost", "Year", "location", "var", "sdtrt"), summarise,
             RRmean=mean(RR),
                meanProb = mean(PredictedProb),
             meanN6=mean(N),
@@ -143,7 +148,7 @@ Dglmprob <-( ddply(Dglm, c("soycost", "location", "var", "sdtrt"), summarise,
               LLmean=mean(UL)))
 
 
-write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/GoodProbSummary.csv"))
 
 ```
 
@@ -186,8 +191,8 @@ Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles//CADMay17.
 Y3<-subset(Y, !(Y$Diff=="NA") & !(Y$location=="ALE") 
            & (Y$Year=="2015")
            )
-Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk, Y3$ac))
-colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps", "Aphid Counts")
+Y5<-as.matrix(cbind(Y3$yieldcont, Y3$PRha, Y3$Scpubcont, Y3$RDW, Y3$PD, Y3$Low5wk))
+colnames(Y5) <- c("Yield", "Partial Returns", "Plant Stand", "Root Dry Weight", "Planting Date", "Low Temps")
 corr2<-cor(Y5, use="pairwise.complete.obs")
 corrplot.mixed(corr2)
 
@@ -267,9 +272,10 @@ library(graphics)
 #install.packages("corrplot")
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/LocationYearData.csv"))
-Y3<-subset(Y, Y$Sdtrt=="Overall" & !(Y$pH=="7.3"))
-Y5<-as.matrix(cbind(Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$Low5wk, Y3$RF2wk, Y3$PD))
-colnames(Y5) <- c("Partial \nReturns", "pH", "CEC", "SOM", "Sand %",  "Clay %", "Low5wk", "RF2wk", "Planting \nDate")
+Y3<-subset(Y, Y$Sdtrt=="Overall" & !(Y$Year=="2013")
+           )
+Y5<-as.matrix(cbind(Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$Low5wk, Y3$RF2wk, Y3$PD, Y3$Yield, Y3$Scpub))
+colnames(Y5) <- c("Partial \nReturns", "pH", "CEC", "SOM", "Sand %",  "Clay %", "Low5wk", "RF2wk", "Planting \nDate", "Stand Count", "Yield")
 corr2<-cor(Y5, use="pairwise.complete.obs")
 Y6<-as.data.frame(Y5)
 plot(Y6)
@@ -277,6 +283,7 @@ dev.off()
 corrplot.mixed(corr2, lower="number", upper="shade" , tl.offset = 0, tl.pos="d", tl.cex=0.8)
 corr1<-rcorr(Y5, type="pearson")
 #print(corr1)
+
 ```
 
 
@@ -285,7 +292,7 @@ corr1<-rcorr(Y5, type="pearson")
 library(ggplot2)
 library(plyr)
 rm(list = ls())
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbFull.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
 y3<-subset(Y, (Y$soycost=="10"))
 y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
             meanProb=mean(PredictedProb),
@@ -295,31 +302,45 @@ g+
   #geom_histogram(aes(y=..density..),bins=20)+
   theme_light()+
   geom_density(adjust=2)+
-geom_vline(data=y4, aes(xintercept=meanProb, color="Median"))+ 
-  geom_vline(data=y4, aes(xintercept=medianProb, color="Mean"))+
+geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
+  geom_vline(data=y4, aes(xintercept=medianProb, color="Median"))+
 facet_grid(location~sdtrt)+
   theme(axis.text=element_text(size=7))+
   labs(x="Predicted Probability of Breaking Even", y="Density", color="Averages")+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
 ```
 
+Model Validation - Poor.
+```{r, echo=FALSE}
+library(pheatmap)
+rm(list=ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+Y <- subset(Y, soycost=="10")
+Y$yc<-scale(Y$yieldcont)
+Y$PP<-(Y$PredictedProb)*30
+Y2<-as.matrix(cbind(Y$yieldcont, Y$PP))
+pheatmap(Y2, clustering_method="complete")
+
+
+```
+
 #Field Isolate Chart
 ```{r, echo=FALSE}
 library(ggplot2)
 library(Rmisc)
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/FieldIsolates_May24.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/FieldIsolates_July7.csv"))
 YO<-subset(Y, !(Species=="") & (Pathogen=="O"))
 YF<-subset(Y, !(Species=="") & (Pathogen=="F"))
      
-    g1<-ggplot(YO, aes(x=Spec))+
+    g1<-ggplot(YO, aes(x=SpecGen))+
 geom_bar(data=YO, aes(fill=Location))+ 
 theme_light()+
 theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+
 ylim(0, 30)
 
-     g2<-ggplot(YO, aes(x=Spec))+
-geom_bar(data=YF, aes(x=Spec, fill=Location))+
+     g2<-ggplot(YO, aes(x=SpecGen))+
+geom_bar(data=YF, aes(x=SpecGen, fill=Location))+
 theme_bw()+
 theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+ 
