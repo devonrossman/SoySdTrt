@@ -67,12 +67,12 @@ print(atest)
 
 
 #Fixed Effects Model Fitting for MLE
-f1 <- glmer(N ~ soycostsc + sdtrt +var + Year+ location + sdtrt:location+ (1 | rep/location/Year), data=D, family=binomial)
+f1 <- lm(N ~ soycostsc + sdtrt +var + Year+ location + sdtrt:location, data=D, family=binomial)
 f2 <- glmer(N ~ soycostsc + sdtrt +var+ location + sdtrt:location+ (1 | rep/location/Year), data=D, family=binomial)
 f3 <- glmer(N ~ soycostsc + sdtrt +var+ location + (1 | rep/location), data=D, family=binomial)
 f4 <- glmer(N ~ soycostsc + sdtrt + location/Year + (1 | rep/location/Year), data=D, family=binomial)
 f5<-glmer(N ~ location + sdtrt + (1 | rep/location), data=D, family=binomial)
-ftest<-anova(f4, f5)
+ftest<-anova(f1, f2)
 print(ftest)
 
 #Fixed Effects Model Fitting for MLE
@@ -151,6 +151,8 @@ Dglmprob <-( ddply(Dglm, c("soycost", "Year", "location", "var", "sdtrt"), summa
 write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/GoodProbSummary.csv"))
 
 ```
+
+
 
 #Correlation Plots
 ```{r, echo=FALSE}
@@ -321,23 +323,26 @@ Y$PP<-(Y$PredictedProb)*30
 Y2<-as.matrix(cbind(Y$yieldcont, Y$PP))
 pheatmap(Y2, clustering_method="complete")
 
-
 ```
 
 #Field Isolate Chart
 ```{r, echo=FALSE}
 library(ggplot2)
 library(Rmisc)
+
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/FieldIsolates_July7.csv"))
 YO<-subset(Y, !(Species=="") & (Pathogen=="O"))
 YF<-subset(Y, !(Species=="") & (Pathogen=="F"))
-     
+
+YO <- within(YO, SpecGen <- factor(SpecGen,                    levels=names(sort(table(SpecGen),                                    decreasing=TRUE))))
+YF <- within(YF, SpecGen <- factor(SpecGen,                    levels=names(sort(table(SpecGen),                                    decreasing=TRUE))))
+
     g1<-ggplot(YO, aes(x=SpecGen))+
 geom_bar(data=YO, aes(fill=Location))+ 
 theme_light()+
 theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+
-ylim(0, 30)
+ylim(0, 25)
 
      g2<-ggplot(YO, aes(x=SpecGen))+
 geom_bar(data=YF, aes(x=SpecGen, fill=Location))+
@@ -346,6 +351,9 @@ theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
 labs(x="", y="Number of Isolates")+ 
 ylim(0, 50)
 
+g1
+g2
+     
 multiplot(g1, g2, cols=1)
 
 ```
@@ -477,3 +485,77 @@ g14<-ggplot(a12, aes(y=lsmeans.lsmean, x=lsmeans.var, color=lsmeans.sdtrt)
 
 
 ```
+
+
+#Produce CSV of Mean RR and Predicted Prob, No random Factors
+```{r, echo=FALSE}
+library(lme4)
+library(aod)
+library(Rcpp)
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(drc)
+library(AICcmodavg)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADnoCON.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") & !(Y$sdtrt=="CON") 
+           #& (Y$Year=="2015")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+D$soycostsc<-scale(D$soycost)
+D$Low5wksc<-scale(D$Low5wk)
+mprob <- lm(N ~ soycostsc + location + sdtrt + var, data=D)
+summary (mprob)
+BIC(mprob)
+
+predictglm<-predict.lm (mprob, D, se.fit = TRUE) 
+Dglm <- cbind(D, predictglm)
+Dglm <- within(Dglm, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+
+
+y3<-subset(Dglm, (Dglm$soycost=="10"))
+y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
+            meanProb=mean(PredictedProb),
+            medianProb=median(PredictedProb)))
+g<-ggplot(y3, aes(x=PredictedProb))
+g+
+  #geom_histogram(aes(y=..density..),bins=20)+
+  theme_light()+
+  geom_density(adjust=2)+
+geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
+  geom_vline(data=y4, aes(xintercept=medianProb, color="Median"))+
+facet_grid(location~sdtrt)+
+  theme(axis.text=element_text(size=7))+
+  labs(x="Predicted Probability of Breaking Even", y="Density", color="Averages")+
+  scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
+```
+
+
