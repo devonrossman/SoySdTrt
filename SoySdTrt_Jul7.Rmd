@@ -36,13 +36,18 @@ D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
 D$Year <- as.factor(D$Year)
 D$soycostsc<-scale(D$soycost)
+D$Clay<-scale(D$Clay)
+D$pH<-scale(D$pH)
+D$SOM<-scale(D$SOM)
+D$PD<-scale(D$PD)
+D$Low5wk<-scale(D$Low5wk)
 
 #Random Effects Fitting for BINOMIAL Distribution
-a1 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1|sdtrt:var) + (1 | rep/YL), data=D, family=binomial)
-a2 <- glmer(N ~ soycostsc + sdtrt + (1|sdtrt:YL) + (1|var) + (1 | rep/YL), data=D, family=binomial)
-a3 <- glmer(N ~ soycostsc + sdtrt + (1|var) + (1 | rep/YL), data=D, family=binomial)
-a4 <- glmer(N ~ soycostsc + sdtrt + (1 | rep/YL), data=D, family=binomial)
-atest<-anova(a1, a2, a3, a4)
+a1 <- glmer(N ~ soycostsc + sdtrt + location + pH + Clay + Low5wk + var + (1 | rep/YL), data=D, family=binomial)
+a2 <- glmer(N ~ soycostsc + sdtrt + PD + Clay + Low5wk + SOM + var + (1 | rep/YL), data=D, family=binomial)
+a3 <- glmer(N ~ soycostsc + sdtrt + Clay + Low5wk + PD + var + (1 | rep/YL), data=D, family=binomial)
+a4 <- glmer(N ~ soycostsc + sdtrt + var + Clay + PD + (1 | rep/YL), data=D, family=binomial)
+atest<-anova(a2, a3, a4)
 print(atest)
 ```
 
@@ -86,7 +91,10 @@ D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
 D$var <- as.factor(D$var)
 D$soycostsc<-scale(D$soycost)
 D$Low5wksc<-scale(D$Low5wk)
-mprob <- glmer(N ~ soycostsc + location + sdtrt + var + (1 | rep/location), data=D, family=binomial)
+D$Clay<-scale(D$Clay)
+D$PD<-scale(D$PD)
+D$West<-scale(D$West)
+mprob <- glmer(N ~ Clay + Low5wk + West + sdtrt + var + (1 | rep/location), data=D, family=binomial)
 summary (mprob)
 BIC(mprob)
 
@@ -98,21 +106,28 @@ Dglm <- within(Dglm, {
   UL <- plogis(fit + (1.96 * se.fit))
   }
 )
-write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbClay.csv"))
 
 #Combined Prob13.csv, Prob14.csv, Prob15.csv
 #UploadedBelow
 #Yprob <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Probcombined.csv"))
 
-Dglmprob <-( ddply(Dglm, c("soycost", "Year", "location", "var", "sdtrt"), summarise,
-            RRmean=mean(RR),
+Dglmprob <-( ddply(Dglm, c("soycost", "location", "Clay", "West", "Low5wk", "var", "sdtrt"), summarise,
+                   RRmean=mean(RR),
                meanProb = mean(PredictedProb),
-            meanN6=mean(N),
+            Nmean=mean(N),
             ULmean=mean(LL),
               LLmean=mean(UL)))
+write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/GoodProbSummaryClay.csv"))
 
-
-write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/GoodProbSummary.csv"))
+Dglm<-subset(Dglm, soycost=="10")
+D2glmprob <-( ddply(Dglm, c("location", "Clay", "West", "Low5wk", "sdtrt"), summarise,
+                   RRmean=mean(RR),
+               meanProb = mean(PredictedProb),
+            Nmean=mean(N),
+            ULmean=mean(LL),
+              LLmean=mean(UL)))
+write.csv(D2glmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/SummaryProbClay.csv"))
 
 ```
 
@@ -272,7 +287,7 @@ pairs(~Y6$PartialReturns + Y6$pH + Y6$SOM + Y6$Clay)
 library(ggplot2)
 library(plyr)
 rm(list = ls())
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbClay.csv"))
 y3<-subset(Y, (Y$soycost=="10"))
 y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
             meanProb=mean(PredictedProb),
@@ -294,11 +309,11 @@ Model Validation - Poor.
 ```{r, echo=FALSE}
 library(pheatmap)
 rm(list=ls())
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/SummaryProbClay.csv"))
 Y <- subset(Y, soycost=="10")
 Y$yc<-scale(Y$yieldcont)
 Y$PP<-(Y$PredictedProb)*30
-Y2<-as.matrix(cbind(Y$yieldcont, Y$PP))
+Y2<-as.matrix(cbind(Y$Nmean, Y$meanProb))
 pheatmap(Y2, clustering_method="complete")
 
 ```
