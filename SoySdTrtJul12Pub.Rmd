@@ -67,6 +67,57 @@ write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Go
 ```
 
 
+Yield, By Year, Location, and Sdtrt
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADJuly14.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+
+D1 <-( ddply(D, c("Year", "location", "sdtrt"), summarise,
+            N=length(yieldMgha),
+             meanyield=mean(yieldMgha),
+            medianProb=median(yieldMgha),
+            sdyield=sd(yieldMgha),
+            seyield=(sdyield/sqrt(N))
+                         ))
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  theme_light()+
+facet_grid(Year~location)+
+  theme(axis.text=element_text(size=12))+
+    theme(axis.title=element_text(size=16))+
+  theme(strip.text=element_text(size=14))+
+  labs(x="Seed Treatment", y="Yield\nMg/kg", color="")
+
+```
+
+
 #Useful CorrPlots
 ```{r, echo=FALSE}
 library(ggplot2)
@@ -114,7 +165,7 @@ pairs(~Y6$PartialReturns + Y6$pH + Y6$SOM + Y6$Clay)
 library(ggplot2)
 library(plyr)
 rm(list = ls())
-Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/ProbClay.csv"))
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
 y3<-subset(Y, (Y$soycost=="10"))
 y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
             meanProb=mean(PredictedProb),
@@ -132,7 +183,7 @@ facet_grid(location~sdtrt)+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
 ```
 
-Model Validation - Poor.
+Model Validation - Okay?
 ```{r, echo=FALSE}
 library(pheatmap)
 rm(list=ls())
