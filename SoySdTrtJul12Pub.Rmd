@@ -155,14 +155,17 @@ dev.off()
 corrplot.mixed(corr2, lower="number", upper="shade" , tl.offset = 0, tl.pos="d", tl.cex=0.8)
 corr1<-rcorr(Y5, type="pearson")
 corr1
-Y6<-as.data.frame(cbind(Y3$Location, Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$Low5wk, Y3$RF2wk, Y3$PD))
+
+Y6<-as.data.frame(cbind(Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$Low5wk, Y3$RF2wk, Y3$PD))
+Y6<-cbind(Y3$Location, Y6)
 colnames(Y6) <- c("Site", "PartialReturns", "pH", "CEC", "SOM", "Sand",  "Clay", "Low5wk", "RF2wk", "PlantingDate")
 Y6$Site<-as.factor(Y6$Site)
+
 g<-ggplot(data=Y6, aes(x=PartialReturns, y=Clay))
-g+
+gClay<-g+
   geom_point(
     aes(color=Site)
-    )+
+    )+theme(text=element_text(size=16))+
   geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
   stat_poly_eq(formula = y ~ x, 
                aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
@@ -173,6 +176,44 @@ g+
     aes(label = paste("P-value = ",    
     signif(..p.value.., digits = 4), sep = "")),
     label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+g<-ggplot(data=Y6, aes(x=PartialReturns, y=pH))
+gpH<-g+
+  geom_point(
+    aes(color=Site)
+    )+theme(text=element_text(size=16))+
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
+               parse = TRUE)+
+ stat_fit_glance(method = 'lm',
+    method.args = list(formula = y ~ x),
+    geom = 'text',
+    aes(label = paste("P-value = ",    
+    signif(..p.value.., digits = 4), sep = "")),
+    label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+g<-ggplot(data=Y6, aes(x=PartialReturns, y=SOM))
+gSOM<-g+
+  geom_point(
+    aes(color=Site)
+    )+ theme(text=element_text(size=16))+
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
+               parse = TRUE)+
+ stat_fit_glance(method = 'lm',
+    method.args = list(formula = y ~ x),
+    geom = 'text',
+    aes(label = paste("P-value = ",    
+    signif(..p.value.., digits = 4), sep = "")),
+    label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+multiplot(
+gClay,
+gpH,
+gSOM,
+cols=1)
 
 chisq.out.test(Y6$PartialReturns, variance=var(Y6$PartialReturns), opposite=FALSE)
 
