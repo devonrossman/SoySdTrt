@@ -236,13 +236,16 @@ g<-ggplot(y3, aes(x=PredictedProb))
 g+
   #geom_histogram(aes(y=..density..),bins=20)+
   theme_light()+
+  theme(text=element_text(size=16))+
   geom_density(adjust=2)+
 geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
   geom_vline(data=y4, aes(xintercept=medianProb, color="Median"))+
 facet_grid(location~sdtrt)+
-  theme(axis.text=element_text(size=7))+
-  labs(x="Predicted Probability of Breaking Even", y="Proportion of Predicted Outcomes", color="Averages")+
+  theme(axis.text=element_text(size=10))+
+  labs(x="Predicted Probability of Breaking Even", y="Predicted Outcomes", color="Averages")+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
+
+#700 Wide, 600 High for Image Export
 ```
 
 Model Validation - Okay?
