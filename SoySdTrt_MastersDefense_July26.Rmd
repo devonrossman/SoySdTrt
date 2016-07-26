@@ -179,6 +179,81 @@ dev.off()
 
 ```
 
+Aphids
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADJuly14.csv"))
+Y3<-subset(Y, !(Y$ac=="NA") &
+           !(Y$Year=="2013")
+           )
+
+D1 <-( ddply(Y3, c("Year", "location", "sdtrt"), summarise,
+            N=length(ac),
+             meanyield=mean(ac),
+            medianProb=median(ac),
+            sdyield=sd(ac),
+            seyield=(sdyield/sqrt(N))
+                         ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+jpeg("AC.jpeg", width = 6, height = 4, units = 'in', res = 300)
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+facet_grid(Year~location)+
+  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, vjust=0.5, hjust=1),
+    axis.title=element_text(size=10.5),
+  strip.text=element_text(size=11, color="black"))+
+  labs(x="Seed Treatment", y=expression(paste("Aphid Counts (aphids ",plant^-1, ")" )), color="")
+dev.off()
+```
+
+
+
+SCN
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/SCN.csv"))
+#Y3<-subset(Y, (Y$location=="Saginaw") &
+ #          (Y$Year=="2015")
+  #         )
+D1 <-( ddply(Y, c("Year", "location", "sdtrt"), summarise,
+            N=length(RF),
+             meanyield=mean(RF),
+            medianProb=median(RF),
+            sdyield=sd(RF),
+            seyield=(sdyield/sqrt(N))
+                         ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+jpeg("SCN.jpeg", width = 2.5, height = 2, units = 'in', res = 300)
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+#facet_grid(Year~location)+
+  theme(text=element_text(size=6), text=element_text(color="black"), axis.text=element_text(size=5, angle=90, vjust=0.5, hjust=1),
+    axis.title=element_text(size=6))+
+  labs(x="Seed Treatment", y="Reproductive Factor (SCN eggs pf/pi)", color="")
+dev.off()
+```
 
 
 #Useful CorrPlots
@@ -286,13 +361,13 @@ gWest<-g+
     signif(..p.value.., digits = 4), sep = "")),
     label.x.npc = 'right', label.y.npc=0.35, size=3)
 
-jpeg("multiplotcorrelation.jpeg", width = 8, height = 5, units = 'in', res = 300)
+jpeg("multiplotcorrelation1.jpeg", width = 5, height = 5, units = 'in', res = 300)
 multiplot(
 gClay,
 gpH,
 gSOM,
 gWest,
-cols=2)
+cols=1)
 dev.off()
 
 chisq.out.test(Y6$PartialReturns, variance=var(Y6$PartialReturns), opposite=FALSE)
@@ -474,7 +549,7 @@ pq<-multiplot(g, grdw, gh, ghrdw, cols=2)
 ```
 
 
-Greenhouse Charts
+Greenhouse RDW Charts
 ```{r, echo=FALSE}
 library(ggplot2)
 library(lsmeans)
@@ -497,6 +572,44 @@ jpeg('GHRDW.jpeg', width=8, height=5, units='in', res=300)
 ghrdw<-ggplot(agh1, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+ geom_point(position=position_dodge(width=0.21))+
   facet_grid(Var~PathTitle)+
+geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
+labs(y="Greenhouse Root Dry Weight \n Relative to NTC", x="Soybean Variety", color="Seed Treament")+
+theme(text=element_text(size=9, color="black"),
+  axis.title=element_text(size=11),
+      axis.text=element_text(size=8.5),
+      axis.text.x=element_text(size=8.5, angle=90, hjust=0.5, vjust=0.5),
+      legend.title=element_text(size=9.5), legend.text=element_text(size=9))
+ghrdw
+dev.off()
+
+
+
+```
+
+
+Greenhouse Emerge Charts
+```{r, echo=FALSE}
+library(ggplot2)
+library(lsmeans)
+library(lme4)
+library(Rmisc)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
+Y3<-subset(Y, !(Y$RDWdiffinsdtrt=="NA") & !(Y$Var=="Sloan") 
+           #& (Y$PathTitle=="Control")
+           #& !(Y$sdtrt=="CON")
+           )
+Y3$Var<-as.factor(Y3$Var)
+lm1<-lmer(Emergecont ~ sdtrt*Var*PathTitle + (1 | Rep/Exp), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt | PathTitle)
+a<-summary(lsm1)
+a<-as.data.frame(a$lsmeans)
+agh1<-a
+
+jpeg('GHEmerge.jpeg', width=8, height=5, units='in', res=300)
+ghrdw<-ggplot(agh1, aes(y=lsmean, x=sdtrt, color=sdtrt)
+)+ geom_point(position=position_dodge(width=0.21))+
+  facet_grid(.~PathTitle)+
 geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
 labs(y="Greenhouse Root Dry Weight \n Relative to NTC", x="Soybean Variety", color="Seed Treament")+
 theme(text=element_text(size=9, color="black"),
