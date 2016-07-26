@@ -1,8 +1,4 @@
-```{r, ECHO=false}
-citation("Hmisc")
-citation("pheatmap")
-install.packages("ggpmisc")
-```
+
 
 #Produce CSV of Mean RR and Predicted Prob, by factors
 ```{r, echo=FALSE}
