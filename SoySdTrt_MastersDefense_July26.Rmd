@@ -541,7 +541,8 @@ ghrdw<-ggplot(agh1, aes(y=lsmean, x=Var, color=sdtrt)
 )+ geom_point(position=position_dodge(width=0.21))+
 geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
 labs(y="Greenhouse Root Dry Weight \n Relative to NTC", x="Soybean Variety", color="Seed Treament")+
-theme(axis.title=element_text(size=14), axis.text=element_text(size=12), legend.title=element_text(size=14), legend.text=element_text(size=12))
+theme(axis.title=element_text(size=14), axis.text=element_text(size=12), legend.title=element_text(size=14), legend.text=element_text(size=12),
+      strip.text=element_text(face="italic"))
 
 structure(ghrdw)
 pq<-multiplot(g, grdw, gh, ghrdw, cols=2)
@@ -573,16 +574,15 @@ ghrdw<-ggplot(agh1, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+ geom_point(position=position_dodge(width=0.21))+
   facet_grid(Var~PathTitle)+
 geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
-labs(y="Greenhouse Root Dry Weight \n Relative to NTC", x="Soybean Variety", color="Seed Treament")+
+labs(y="Greenhouse Root Dry Weight \n Relative to NTC (g)", x="Seed Treatment", color="Seed Treament")+
 theme(text=element_text(size=9, color="black"),
   axis.title=element_text(size=11),
       axis.text=element_text(size=8.5),
       axis.text.x=element_text(size=8.5, angle=90, hjust=0.5, vjust=0.5),
-      legend.title=element_text(size=9.5), legend.text=element_text(size=9))
+      legend.title=element_text(size=9.5), legend.text=element_text(size=9),
+  strip.text=element_text(face="italic" ))
 ghrdw
 dev.off()
-
-
 
 ```
 
@@ -606,20 +606,85 @@ a<-summary(lsm1)
 a<-as.data.frame(a$lsmeans)
 agh1<-a
 
-jpeg('GHEmerge.jpeg', width=8, height=5, units='in', res=300)
+jpeg('GHEmerge.jpeg', width=7, height=4, units='in', res=300)
 ghrdw<-ggplot(agh1, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+ geom_point(position=position_dodge(width=0.21))+
   facet_grid(.~PathTitle)+
 geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
-labs(y="Greenhouse Root Dry Weight \n Relative to NTC", x="Soybean Variety", color="Seed Treament")+
-theme(text=element_text(size=9, color="black"),
-  axis.title=element_text(size=11),
-      axis.text=element_text(size=8.5),
-      axis.text.x=element_text(size=8.5, angle=90, hjust=0.5, vjust=0.5),
-      legend.title=element_text(size=9.5), legend.text=element_text(size=9))
+labs(y="Greenhouse Emergence \n Relative to NTC (%)", x="Soybean Variety", color="Seed Treament")+
+theme(text=element_text(size=8, color="black"),
+  axis.title=element_text(size=10),
+      axis.text=element_text(size=8),
+      axis.text.x=element_text(size=8, angle=90, hjust=1, vjust=0.5),
+      legend.title=element_text(size=8.5), legend.text=element_text(size=8),
+  strip.text=element_text(face="italic"))
 ghrdw
 dev.off()
 
 
 
+```
+
+#Field RDW
+```{r, echo=FALSE}
+library(ggplot2)
+library(lsmeans)
+library(lme4)
+library(Rmisc)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") #& !(Y$sdtrt=="CON") 
+           & (Y$Year=="2015")
+           )
+Y3$var<-as.factor(Y3$var)
+lm1<-lmer(RDWcont ~ sdtrt*var*location + (1 | rep/location), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt:location:var | location:var)
+a<-summary(lsm1$lsmeans)
+a<-as.data.frame(a)
+
+jpeg('FieldRDW.jpeg', width=6, height=3, units='in', res=300)
+grdw<-ggplot(a, aes(y=lsmean, x=sdtrt, color=sdtrt)
+)+
+  facet_grid(var~location)+
+  geom_point(position=position_dodge(width=0.25))+
+   geom_errorbar(aes( ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE), width=0.2, position=position_dodge(width=0.25))+
+  labs(y="Root Dry Weight 2015 \n Relative to NTC (g)", x="Soybean Variety", color="Seed Treament")+
+theme(text=element_text(size=8),
+axis.title=element_text(size=9), axis.text=element_text(size=8),
+axis.text.x=element_text(size=7.5, angle=90, hjust=1, vjust=0.5),
+legend.title=element_text(size=5), legend.text=element_text(size=3))
+grdw
+dev.off()
+
+```
+
+
+```{r, echo=FALSE}
+library(ggplot2)
+library(lsmeans)
+library(lme4)
+library(Rmisc)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
+Y3<-subset(Y, !(Y$Diff8=="NA") #& !(Y$sdtrt=="CON") 
+           & (Y$Year=="2014")
+           )
+Y3$var<-as.factor(Y3$var)
+lm1<-lmer(phcont ~ sdtrt*var*location + (1 | rep/location), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~sdtrt:location | location)
+a<-summary(lsm1$lsmeans)
+a<-as.data.frame(a)
+
+jpeg('Fieldph.jpeg', width=5, height=3, units='in', res=300)
+grdw<-ggplot(a, aes(y=lsmean, x=sdtrt, color=sdtrt)
+)+
+  facet_grid(.~location)+
+  geom_point(position=position_dodge(width=0.25))+
+   geom_errorbar(aes( ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE), width=0.5, position=position_dodge(width=0.25))+
+  labs(y="Plant Height 2014 \n Relative to NTC (cm)", x="Seed Treatment", color="Seed Treament")+
+theme(text=element_text(size=9), axis.title=element_text(size=9), axis.text=element_text(size=8),
+      axis.text.x=element_text(size=7.5, angle=90, hjust=1, vjust=0.5),
+      legend.title=element_text(size=3), legend.text=element_text(size=2))
+grdw
+dev.off()
 ```
