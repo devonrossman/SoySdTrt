@@ -118,10 +118,182 @@ facet_grid(Year~location)+
   theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
     axis.title=element_text(size=10.5),
   strip.text=element_text(size=11, color="black"))+
-  labs(x="Seed Treatment", y=expression(paste("Yield (Mg ", kg^-1, ")")), color="")
+  labs(x="Seed Treatment", y=expression(paste("Yield (Mg ", kg^-1, ")")), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
 dev.off()
 
 ```
+
+PRha sdtrt by var
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADJuly14.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D<-D[c(1560:3118),]
+#<-lmer(PRha, etc...)
+
+D1 <-( ddply(D, c("var", "sdtrt"), summarise,
+            N=length(PRha),
+             meanyield=mean(PRha),
+            medianProb=median(PRha),
+            sdyield=sd(PRha),
+            seyield=(sdyield/sqrt(N))
+                           ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+jpeg("PRhavar.jpeg", width = 8, height = 5, units = 'in', res = 300)
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+facet_grid(.~var)+
+  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
+    axis.title=element_text(size=10.5),
+  strip.text=element_text(size=11, color="black"))+
+  labs(x="Seed Treatment", y=expression(paste("Partial Returns ($ ", ha^-1, ")")), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
+dev.off()
+
+```
+
+
+PRha, sdtrt by location
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADJuly14.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D<-D[c(1560:3118),]
+#<-lmer(PRha, etc...)
+
+D1 <-( ddply(D, c("location", "sdtrt"), summarise,
+            N=length(PRha),
+             meanyield=mean(PRha),
+            medianProb=median(PRha),
+            sdyield=sd(PRha),
+            seyield=(sdyield/sqrt(N))
+                           ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+jpeg("PRhalocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+facet_grid(.~location)+
+  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
+    axis.title=element_text(size=10.5),
+  strip.text=element_text(size=11, color="black"))+
+  labs(x="Seed Treatment", y=expression(paste("Partial Returns ($ ", ha^-1, ")")), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
+dev.off()
+
+```
+
+
+
+PRha, sdtrt, by Var*Year
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(Hmisc)
+library(multcomp)
+library(nlme)
+library(fields)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADJuly14.csv"))
+Y3<-subset(Y, !(Y$Diff=="NA")
+           )
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D<-D[c(1560:3118),]
+#<-lmer(PRha, etc...)
+
+D1 <-( ddply(D, c("Year", "var", "sdtrt"), summarise,
+            N=length(PRha),
+             meanyield=mean(PRha),
+            medianProb=median(PRha),
+            sdyield=sd(PRha),
+            seyield=(sdyield/sqrt(N))
+                           ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+jpeg("PRha.jpeg", width = 8, height = 5, units = 'in', res = 300)
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+facet_grid(Year~var)+
+  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
+    axis.title=element_text(size=10.5),
+  strip.text=element_text(size=11, color="black"))+
+  labs(x="Seed Treatment", y=expression(paste("Partial Returns ($ ", ha^-1, ")")), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
+dev.off()
+
+```
+
 
 
 Plant Stand, By Year, Location, and Sdtrt
@@ -171,13 +343,14 @@ g+
   geom_bar(stat= "identity")+ 
   geom_errorbar(limits, width=0.4)+
 facet_grid(Year~location)+
-  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
+  theme(text=element_text(color="black"), axis.text.y=element_text(size=8, angle=90, hjust=0.5, vjust=0.5), axis.text.x=element_text(size=8, angle=90, hjust=1, vjust=0.5),
     axis.title=element_text(size=10.5),
   strip.text=element_text(size=11, color="black"))+
-  labs(x="Seed Treatment", y=expression(paste("Plant Stand (plants ",m^-2, ")" )), color="")
+  labs(x="Seed Treatment", y=expression(paste("Plant Stand (plants ",m^-2, ")" )), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
 dev.off()
 
 ```
+
 
 Aphids
 ```{r, echo=FALSE}
@@ -376,6 +549,122 @@ scatterplot(Y6$PartialReturns~Y6$Clay)
 pairs(~Y6$PartialReturns + Y6$pH + Y6$SOM + Y6$Clay)
 ```
 
+Correlations by Individual Seed Tretments
+```{r, echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(Rmisc)
+library(scales)
+library(HSAUR)
+library(Hmisc)
+library(arm)
+library(car)
+library(corrplot)
+library(graphics)
+library(outliers)
+library(ggpmisc)
+#update.packages("corrplot")
+#install.packages("outliers")
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/LocationYearData.csv"))
+Y3<-subset(Y, Y$Sdtrt=="FI" 
+           #& !(Y$pH=="5.9")
+           )
+Y5<-as.matrix(cbind(Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$W, Y3$Low5wk, Y3$RF2wk, Y3$PD))
+colnames(Y5) <- c("Partial \nReturns", "pH", "CEC", "SOM", "Sand %", "Clay %", "West", "Low5wk", "RF2wk", "Planting \nDate")
+corr2<-cor(Y5, use="pairwise.complete.obs")
+Y6<-as.data.frame(Y5)
+
+plot(Y6)
+dev.off()
+jpeg("CorrelationFINwoALE13.jpeg", width = 8, height = 5, units = 'in', res = 300)
+corrplot.mixed(corr2, lower="number", upper="shade" , tl.offset = 0, tl.pos="d", tl.cex=0.75)
+dev.off()
+corr1<-rcorr(Y5, type="pearson")
+corr1
+
+Y3$Year<-as.factor(Y3$Year)
+Y6<-as.data.frame(cbind(Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$W, Y3$Low5wk, Y3$RF2wk, Y3$PD, as.factor(Y3$Year)))
+Y6<-cbind(Y3$Location, Y6)
+colnames(Y6) <- c("Site", "PartialReturns", "pH", "CEC", "SOM", "Sand", "Clay", "West", "Low5wk", "RF2wk", "PlantingDate", "Year")
+Y6$Site<-as.factor(Y6$Site)
+Y6$Year<-as.factor(Y6$Year)
+
+g<-ggplot(data=Y6, aes(x=PartialReturns, y=Clay))
+gClay<-g+
+  geom_point(
+    aes(color=Site, shape=Year)
+    )+theme(text=element_text(size=10))+
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
+               parse = TRUE)+
+ stat_fit_glance(method = 'lm',
+    method.args = list(formula = y ~ x),
+    geom = 'text',
+    aes(label = paste("P-value = ",    
+    signif(..p.value.., digits = 4), sep = "")),
+    label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+g<-ggplot(data=Y6, aes(x=PartialReturns, y=pH))
+gpH<-g+
+  geom_point(
+    aes(color=Site, shape=Year)
+    )+theme(text=element_text(size=10))+
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
+               parse = TRUE)+
+ stat_fit_glance(method = 'lm',
+    method.args = list(formula = y ~ x),
+    geom = 'text',
+    aes(label = paste("P-value = ",    
+    signif(..p.value.., digits = 4), sep = "")),
+    label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+g<-ggplot(data=Y6, aes(x=PartialReturns, y=SOM))
+gSOM<-g+
+  geom_point(
+    aes(color=Site, shape=Year)
+    )+ theme(text=element_text(size=10))+
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
+               parse = TRUE)+
+ stat_fit_glance(method = 'lm',
+    method.args = list(formula = y ~ x),
+    geom = 'text',
+    aes(label = paste("P-value = ",    
+    signif(..p.value.., digits = 4), sep = "")),
+    label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+g<-ggplot(data=Y6, aes(x=PartialReturns, y=West))
+gWest<-g+
+  geom_point(
+    aes(color=Site, shape=Year)
+    )+ theme(text=element_text(size=10))+
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x, fullrange = TRUE) +
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..adj.rr.label.., sep = "~~~")), 
+               parse = TRUE)+
+ stat_fit_glance(method = 'lm',
+    method.args = list(formula = y ~ x),
+    geom = 'text',
+    aes(label = paste("P-value = ",    
+    signif(..p.value.., digits = 4), sep = "")),
+    label.x.npc = 'right', label.y.npc=0.35, size=3)
+
+jpeg("multiplotcorrelationFINwoALE13.jpeg", width = 5, height = 5, units = 'in', res = 300)
+multiplot(
+gClay,
+gpH,
+gSOM,
+gWest,
+cols=1)
+dev.off()
+```
+
+
 
 #Density Plot for SoySeedTrt
 ```{r, echo=FALSE}
@@ -396,10 +685,9 @@ g+
   theme(text=element_text(size=10))+
   geom_density(adjust=2)+
 geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
-  geom_vline(data=y4, aes(xintercept=medianProb, color="Median"))+
 facet_grid(location~sdtrt)+
   theme(axis.text=element_text(size=7.75))+
-  labs(x="Predicted Probability of Breaking Even", y="Predicted Outcomes", color="Averages")+
+  labs(x="Predicted Probability of Breaking Even", y="Predicted Outcomes", color="")+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
 dev.off()
 #700 Wide, 600 High for Image Export
@@ -542,7 +830,7 @@ ghrdw<-ggplot(agh1, aes(y=lsmean, x=Var, color=sdtrt)
 geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
 labs(y="Greenhouse Root Dry Weight \n Relative to NTC", x="Soybean Variety", color="Seed Treament")+
 theme(axis.title=element_text(size=14), axis.text=element_text(size=12), legend.title=element_text(size=14), legend.text=element_text(size=12),
-      strip.text=element_text(face="italic"))
+      strip.text=element_text(face="italic"))+ scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
 
 structure(ghrdw)
 pq<-multiplot(g, grdw, gh, ghrdw, cols=2)
@@ -550,7 +838,7 @@ pq<-multiplot(g, grdw, gh, ghrdw, cols=2)
 ```
 
 
-Greenhouse RDW Charts
+#Greenhouse RDW sdtrt by Pathtitle*var
 ```{r, echo=FALSE}
 library(ggplot2)
 library(lsmeans)
@@ -563,31 +851,33 @@ Y3<-subset(Y, !(Y$RDWdiffinsdtrt=="NA") & !(Y$Var=="Sloan")
            #& !(Y$sdtrt=="CON")
            )
 Y3$Var<-as.factor(Y3$Var)
-lm1<-lmer(RDWdiffinsdtrt ~ sdtrt*Var*PathTitle + (1 | Rep/Exp), data=Y3)
+lm1<-lmer(RDW ~ sdtrt*Var*PathTitle + (1 | Rep/Exp), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt | PathTitle:Var)
 a<-summary(lsm1)
 a<-as.data.frame(a$lsmeans)
 agh1<-a
+se <- function(x) sqrt(var(x, na.rm=TRUE)/(length(na.omit(x))))
+serror<-aggregate(Y3$RDW, list(Y3$sdtrt, Y3$PathTitle, Y3$Var), se)
 
 jpeg('GHRDW.jpeg', width=8, height=5, units='in', res=300)
 ghrdw<-ggplot(agh1, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+ geom_point(position=position_dodge(width=0.21))+
   facet_grid(Var~PathTitle)+
-geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
-labs(y="Greenhouse Root Dry Weight \n Relative to NTC (g)", x="Seed Treatment", color="Seed Treament")+
+geom_errorbar( aes(ymin=a$lsmean-1.96*serror$x, ymax=a$lsmean+1.96*serror$x, width=0.2), position=position_dodge(width=0.21))+
+labs(y="Greenhouse Root Dry Weight (g)", x="Seed Treatment", color="Seed Treament")+
 theme(text=element_text(size=9, color="black"),
   axis.title=element_text(size=11),
       axis.text=element_text(size=8.5),
       axis.text.x=element_text(size=8.5, angle=90, hjust=0.5, vjust=0.5),
       legend.title=element_text(size=9.5), legend.text=element_text(size=9),
-  strip.text=element_text(face="italic" ))
+  strip.text=element_text(face="italic" ))+ scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
 ghrdw
 dev.off()
 
 ```
 
 
-Greenhouse Emerge Charts
+GH RDW Pathtitle
 ```{r, echo=FALSE}
 library(ggplot2)
 library(lsmeans)
@@ -597,6 +887,81 @@ rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
 Y3<-subset(Y, !(Y$RDWdiffinsdtrt=="NA") & !(Y$Var=="Sloan") 
            #& (Y$PathTitle=="Control")
+           & (Y$sdtrt=="NTC")
+           )
+Y3$Var<-as.factor(Y3$Var)
+lm1<-lmer(RDW ~ Var*PathTitle + (1 | Rep/Exp), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~PathTitle)
+a<-summary(lsm1)
+a<-as.data.frame(a$lsmeans)
+agh1<-a
+se <- function(x) sqrt(var(x, na.rm=TRUE)/(length(na.omit(x))))
+serror<-aggregate(Y3$RDW, list(Y3$PathTitle, Y3$PathTitle), se)
+
+jpeg('GHRDWpath.jpeg', width=5, height=4, units='in', res=300)
+ghrdw<-ggplot(agh1, aes(y=lsmean, x=PathTitle, color=PathTitle)
+)+ geom_point(position=position_dodge(width=0.21))+
+geom_errorbar( aes(ymin=a$lsmean-1.96*serror$x, ymax=a$lsmean+1.96*serror$x, width=0.2), position=position_dodge(width=0.21))+
+labs(y="Root Dry Weight (g)", x="Seed Treatment", color="Seed Treament")+
+theme(text=element_text(size=9, color="black"),
+  axis.title=element_text(size=11),
+      axis.text=element_text(size=8.5),
+      axis.text.x=element_text(size=8.5, angle=90, hjust=1, vjust=0.5, face="italic"),
+      legend.title=element_text(size=9.5), legend.text=element_text(size=9),
+  strip.text=element_text(face="italic" )) #scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
+ghrdw
+dev.off()
+```
+
+
+#GH Emerge - PathTitle
+```{r, echo=FALSE}
+library(ggplot2)
+library(lsmeans)
+library(lme4)
+library(Rmisc)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
+Y3<-subset(Y, !(Y$RDWdiffinsdtrt=="NA") & !(Y$Var=="Sloan") 
+           #& (Y$PathTitle=="Control")
+           & (Y$sdtrt=="NTC")
+           )
+Y3$Var<-as.factor(Y3$Var)
+lm1<-lmer(Emergecont ~ PathTitle + (1 | Rep/Exp), data=Y3)
+lsm1<-lsmeans(lm1, pairwise~PathTitle)
+a<-summary(lsm1)
+a<-as.data.frame(a$lsmeans)
+agh1<-a
+
+se <- function(x) sqrt(var(x, na.rm=TRUE)/(length(na.omit(x))))
+serror<-aggregate(Y3$Emergecont, list(Y3$sdtrt, Y3$PathTitle), se)
+
+jpeg('GHEmergeSdtrt.jpeg', width=5, height=4, units='in', res=300)
+ghrdw<-ggplot(agh1, aes(y=lsmean, x=PathTitle, color=PathTitle)
+)+ geom_point(position=position_dodge(width=0.21))+
+geom_errorbar( aes(ymin=a$lsmean-1.96*serror$x, ymax=a$lsmean+1.96*serror$x, width=0.2), position=position_dodge(width=0.21))+
+labs(y="Greenhouse Emergence (%)", x="Seed Treatment", color="Seed Treament")+
+theme(text=element_text(size=8, color="black"),
+  axis.title=element_text(size=10),
+      axis.text=element_text(size=8),
+      axis.text.x=element_text(size=8, angle=90, hjust=1, vjust=0.5, face="italic"),
+      legend.title=element_text(size=8.5), legend.text=element_text(size=8),
+  strip.text=element_text(face="italic")) #scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
+ghrdw
+dev.off()
+```
+
+
+#Greenhouse Emerge - sdtrt*Pathtitle
+```{r, echo=FALSE}
+library(ggplot2)
+library(lsmeans)
+library(lme4)
+library(Rmisc)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/GHData.csv"))
+Y3<-subset(Y, !(Y$RDWdiffinsdtrt=="NA") & !(Y$Var=="Sloan") 
+           & !(Y$PathTitle=="Control")
            #& !(Y$sdtrt=="CON")
            )
 Y3$Var<-as.factor(Y3$Var)
@@ -606,18 +971,21 @@ a<-summary(lsm1)
 a<-as.data.frame(a$lsmeans)
 agh1<-a
 
+se <- function(x) sqrt(var(x, na.rm=TRUE)/(length(na.omit(x))))
+serror<-aggregate(Y3$Emergecont, list(Y3$sdtrt, Y3$PathTitle), se)
+
 jpeg('GHEmerge.jpeg', width=7, height=4, units='in', res=300)
 ghrdw<-ggplot(agh1, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+ geom_point(position=position_dodge(width=0.21))+
   facet_grid(.~PathTitle)+
-geom_errorbar( aes(ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE, width=0.2), position=position_dodge(width=0.21))+
-labs(y="Greenhouse Emergence \n Relative to NTC (%)", x="Soybean Variety", color="Seed Treament")+
+geom_errorbar( aes(ymin=a$lsmean-1.96*serror$x, ymax=a$lsmean+1.96*serror$x, width=0.2), position=position_dodge(width=0.21))+
+labs(y="Greenhouse Emergence \n Relative to NIC (%)", x="Seed Treatment", color="Seed Treament")+
 theme(text=element_text(size=8, color="black"),
   axis.title=element_text(size=10),
       axis.text=element_text(size=8),
       axis.text.x=element_text(size=8, angle=90, hjust=1, vjust=0.5),
       legend.title=element_text(size=8.5), legend.text=element_text(size=8),
-  strip.text=element_text(face="italic"))
+  strip.text=element_text(face="italic"))+ scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
 ghrdw
 dev.off()
 
@@ -633,32 +1001,38 @@ library(lme4)
 library(Rmisc)
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
-Y3<-subset(Y, !(Y$Diff8=="NA") #& !(Y$sdtrt=="CON") 
+Y3<-subset(Y, !(Y$RDW=="NA") #& !(Y$sdtrt=="CON") 
            & (Y$Year=="2015")
+           & !(Y$var=="Pioneer 3")
+           & !(Y$var=="Pioneer 4")
            )
 Y3$var<-as.factor(Y3$var)
-lm1<-lmer(RDWcont ~ sdtrt*var*location + (1 | rep/location), data=Y3)
+lm1<-lmer(RDW ~ sdtrt*var*location + (1 | rep/location), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt:location:var | location:var)
 a<-summary(lsm1$lsmeans)
 a<-as.data.frame(a)
+se <- function(x) sqrt(var(x, na.rm=TRUE)/(length(na.omit(x))))
+serror<-aggregate(Y3$RDWcont, list(Y3$sdtrt, Y3$location, Y3$var), se)
 
 jpeg('FieldRDW.jpeg', width=6, height=3, units='in', res=300)
 grdw<-ggplot(a, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+
   facet_grid(var~location)+
-  geom_point(position=position_dodge(width=0.25))+
-   geom_errorbar(aes( ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE), width=0.2, position=position_dodge(width=0.25))+
-  labs(y="Root Dry Weight 2015 \n Relative to NTC (g)", x="Soybean Variety", color="Seed Treament")+
+  geom_point(position=position_dodge(width=0.25), size=1)+
+   geom_errorbar(aes( ymin=a$lsmean-1.96*serror$x, ymax=a$lsmean+1.96*serror$x), width=0.2, position=position_dodge(width=0.25))+
+  labs(y="Field Root Dry Weight (g)", x="Soybean Variety", color="Seed Treament")+
 theme(text=element_text(size=8),
 axis.title=element_text(size=9), axis.text=element_text(size=8),
 axis.text.x=element_text(size=7.5, angle=90, hjust=1, vjust=0.5),
-legend.title=element_text(size=5), legend.text=element_text(size=3))
+legend.title=element_text(size=5), legend.text=element_text(size=3))+ scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
+
 grdw
 dev.off()
 
 ```
 
 
+#Plant Height
 ```{r, echo=FALSE}
 library(ggplot2)
 library(lsmeans)
@@ -669,6 +1043,8 @@ Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CAD.csv"))
 Y3<-subset(Y, !(Y$Diff8=="NA") #& !(Y$sdtrt=="CON") 
            & (Y$Year=="2014")
            )
+se <- function(x) sqrt(var(x, na.rm=TRUE)/(length(na.omit(x))))
+serror<-aggregate(Y3$phcont, list(Y3$sdtrt, Y3$location), se)
 Y3$var<-as.factor(Y3$var)
 lm1<-lmer(phcont ~ sdtrt*var*location + (1 | rep/location), data=Y3)
 lsm1<-lsmeans(lm1, pairwise~sdtrt:location | location)
@@ -680,11 +1056,11 @@ grdw<-ggplot(a, aes(y=lsmean, x=sdtrt, color=sdtrt)
 )+
   facet_grid(.~location)+
   geom_point(position=position_dodge(width=0.25))+
-   geom_errorbar(aes( ymin=a$lsmean-1.96*a$SE, ymax=a$lsmean+1.96*a$SE), width=0.5, position=position_dodge(width=0.25))+
-  labs(y="Plant Height 2014 \n Relative to NTC (cm)", x="Seed Treatment", color="Seed Treament")+
+   geom_errorbar(aes( ymin=a$lsmean-1.96*serror$x, ymax=a$lsmean+1.96*serror$x), width=0.5, position=position_dodge(width=0.25))+
+  labs(y="Plant Height 2014 \n Difference from NTC (cm)", x="Seed Treatment", color="Seed Treament")+
 theme(text=element_text(size=9), axis.title=element_text(size=9), axis.text=element_text(size=8),
       axis.text.x=element_text(size=7.5, angle=90, hjust=1, vjust=0.5),
-      legend.title=element_text(size=3), legend.text=element_text(size=2))
+      legend.title=element_text(size=3), legend.text=element_text(size=2))+ scale_color_manual(values = c("gray70", "gray50", "gray30", "black"))
 grdw
 dev.off()
 ```
