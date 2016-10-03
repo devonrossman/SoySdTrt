@@ -1,0 +1,102 @@
+#Model Fitting
+```{r, echo=FALSE}
+library(lme4)
+library(stats)
+library(Rmisc)
+library(ggplot2)
+library(nlme)
+library(AICcmodavg)
+library(multcomp)
+library(Hmisc)
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADOct3.csv"))
+Y2<-subset(Y, !(Y$Diff=="NA") & !(Y$sdtrt=="CON")
+           #& !(Y$Year=="2013")
+           )
+write.csv(Y2, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/SubsetY.csv"))
+
+Y3<-read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/SubsetY.csv")
+
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+D$Year <- as.factor(D$Year)
+D$soycostsc<-scale(D$soycost)
+
+D$PD<-scale(D$PD)
+D$Low5wk<-scale(D$Low5wk)
+D$CEC<-scale(D$CEC)
+D$pH<-scale(D$pH)
+D$Clay<-scale(D$Clay)
+D$Sand<-scale(D$Sand)
+D$West<-scale(D$West)
+D$SOM<-scale(D$SOM)
+D$RF2wk<-scale(D$RF2wk)
+
+#Random Effects Fitting for BINOMIAL Distribution
+mprob <- glmer(N ~ soycostsc + sdtrt + var/location + location + sdtrt:location + (1 | rep/location:Year), data=D, family=binomial)
+#atest<-anova(a1, a2, a3)
+#print(atest)
+#mprob<-summary(a4)
+
+predictglm <-predictSE.merMod (mprob, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+Dglm <- cbind(D, predictglm)
+Dglm <- within(Dglm, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+write.csv(Dglm, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+
+Dglmprob <-( ddply(Dglm, c("sdtrt", "soycost", "location"), summarise,
+                   RRmean=mean(RR),
+               meanProb = mean(PredictedProb),
+            Nmean=mean(N),
+            ULmean=mean(LL),
+              LLmean=mean(UL)))
+write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/GoodProbSummary.csv"))
+
+A1<-read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv")
+A1<-subset(A1, (A1$Year=="2015"))
+a<-cor(A1$RR, A1$PredictedProb, method="pearson")
+cor(A1$yieldcont, A1$RDWcont, method="pearson")
+rcorr(as.matrix(cbind(A1$Scpubcont, A1$PRha)))
+
+plot(A1$yieldcont, A1$Scpubcont)
+
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/Prob.csv"))
+y3<-subset(Y, (Y$soycost=="10"))
+y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
+            meanProb=mean(PredictedProb),
+            medianProb=median(PredictedProb)))
+g<-ggplot(y3, aes(x=PredictedProb))
+g+
+  #geom_histogram(aes(y=..density..),bins=20)+
+  theme_light()+
+  geom_density(adjust=3)+
+geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
+facet_grid(location~sdtrt)+
+  theme(axis.text=element_text(size=7))+
+  labs(x="Predicted Probability of Breaking Even", y="Proportion of Predicted Outcomes", color="Averages")+
+  scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
+
+
+```
+
+

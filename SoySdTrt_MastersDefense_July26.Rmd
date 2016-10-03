@@ -66,6 +66,7 @@ Dglmprob <-( ddply(Dglm, c("sdtrt", "soycost", "location"), summarise,
               LLmean=mean(UL)))
 write.csv(Dglmprob, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/P/GoodProbSummary.csv"))
 
+citation(package="stats")
 ```
 
 
@@ -567,7 +568,7 @@ library(ggpmisc)
 #install.packages("outliers")
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/LocationYearData.csv"))
-Y3<-subset(Y, Y$Sdtrt=="FI" 
+Y3<-subset(Y, Y$Sdtrt=="FIN " 
            #& !(Y$pH=="5.9")
            )
 Y5<-as.matrix(cbind(Y3$PRha, Y3$pH, Y3$CEC, Y3$SOM, Y3$Sand, Y3$Clay, Y3$W, Y3$Low5wk, Y3$RF2wk, Y3$PD))
@@ -577,10 +578,10 @@ Y6<-as.data.frame(Y5)
 
 plot(Y6)
 dev.off()
-jpeg("CorrelationFINwoALE13.jpeg", width = 8, height = 5, units = 'in', res = 300)
+jpeg("CorrelationFIN.jpeg", width = 8, height = 5, units = 'in', res = 300)
 corrplot.mixed(corr2, lower="number", upper="shade" , tl.offset = 0, tl.pos="d", tl.cex=0.75)
 dev.off()
-corr1<-rcorr(Y5, type="pearson")
+corr1<-rcorr(Y5, type="spearman")
 corr1
 
 Y3$Year<-as.factor(Y3$Year)
@@ -677,16 +678,15 @@ y4 <-( ddply(y3, c("location", "sdtrt"), summarise,
             meanProb=mean(PredictedProb),
             medianProb=median(PredictedProb)))
 
-jpeg("Density.jpeg", width = 8, height = 5, units = 'in', res = 300)
+jpeg("Density.jpeg", width = 6, height = 8, units = 'in', res = 300)
 g<-ggplot(y3, aes(x=PredictedProb))
 g+
   #geom_histogram(aes(y=..density..),bins=20)+
-  theme_light()+
-  theme(text=element_text(size=10))+
+  theme(text=element_text(size=14))+
   geom_density(adjust=2)+
 geom_vline(data=y4, aes(xintercept=meanProb, color="Mean"))+ 
 facet_grid(location~sdtrt)+
-  theme(axis.text=element_text(size=7.75))+
+  theme(axis.text=element_text(size=9), axis.text.x=element_text(angle=90), legend.text=element_text(size=1))+
   labs(x="Predicted Probability of Breaking Even", y="Predicted Outcomes", color="")+
   scale_x_continuous(limits=c(0,1), breaks=c(0.1,0.2,0.3,0.4, 0.5, 0.6,0.7,0.8,0.9))
 dev.off()
@@ -730,22 +730,23 @@ YF <- within(YF, SpecGen <- factor(SpecGen,                    levels=names(sort
     g1<-ggplot(YO, aes(x=SpecGen))+
 geom_bar(data=YO, aes(fill=Location))+ 
 theme_light()+
-theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
-labs(x="", y="Number of Isolates")+
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=10), axis.text.x=element_text(face="italic", vjust=0.5), axis.text.y=element_text( hjust=0.5))+
+labs(x="", y="Oomycetes \nNumber of Isolates")+
 ylim(0, 25)
 
      g2<-ggplot(YO, aes(x=SpecGen))+
 geom_bar(data=YF, aes(x=SpecGen, fill=Location))+
 theme_bw()+
-theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=12))+
-labs(x="", y="Number of Isolates")+ 
+theme(axis.text=element_text(angle=90, hjust=1, vjust=0.5, size=10),
+      axis.text.x=element_text(face="italic", vjust=0.5), axis.text.y=element_text( hjust=0.5))+
+labs(x="", y="Fungi \nNumber of Isolates")+ 
 ylim(0, 50)
 
 g1
 g2
-     
+ jpeg("Isolates.jpeg", width = 5, height = 7, units = 'in', res = 300)    
 multiplot(g1, g2, cols=1)
-
+dev.off()
 ```
 
 
