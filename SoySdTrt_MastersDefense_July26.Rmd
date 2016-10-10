@@ -550,7 +550,7 @@ scatterplot(Y6$PartialReturns~Y6$Clay)
 pairs(~Y6$PartialReturns + Y6$pH + Y6$SOM + Y6$Clay)
 ```
 
-Correlations by Individual Seed Tretments
+Correlations by Individual Seed Treatments
 ```{r, echo=FALSE}
 library(ggplot2)
 library(plyr)

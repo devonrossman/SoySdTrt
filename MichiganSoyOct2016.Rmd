@@ -1,0 +1,81 @@
+#PRha
+
+```{r, echo=FALSE}
+library(lme4)
+library(stats)
+library(Rmisc)
+library(ggplot2)
+library(nlme)
+library(AICcmodavg)
+library(multcomp)
+library(Hmisc)
+
+rm(list = ls())
+Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADOct3.csv"))
+Y2<-subset(Y, !(Y$Diff=="NA") & !(Y$sdtrt=="CON")
+          #& !(Y$Year=="2013")
+           )
+write.csv(Y2, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/SubsetY.csv"))
+
+Y3<-read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/SubsetY.csv")
+
+Y3$stcost <- ifelse(Y3$sdtrt == "F", 4, ifelse((Y3$sdtrt =="F+I"), 10, 20))
+Diff<-function(x){
+  cry<-(Y3$stcost/(Y3$yield*x))
+  diff<-(Y3$RR-cry)
+  return(diff)
+}
+output<-as.data.frame(NULL)
+for(i in c(6,10,14)){
+DIFF<-Diff(i)
+output_i<-cbind.data.frame(Y3, DIFF, i)
+output<-rbind.data.frame(output,output_i)
+}
+output$soycost<-as.numeric(output$i)
+output$Diff<-as.numeric(output$DIFF)
+D<-output
+D$N<-D$Diff
+D$N <- ifelse(D$N < 0, 0, ifelse((D$N > 0), 1, 1))
+D$var <- as.factor(D$var)
+D$Year <- as.factor(D$Year)
+D$soycostsc<-scale(D$soycost)
+
+mprob <- glmer(N ~ soycostsc + sdtrt + var/location + location + Year + (1 | rep/location:Year), data=D, family=binomial)
+#D<-D[c(1560:3118),]
+#<-lmer(PRha, etc...)
+
+predictglm <-predictSE.merMod (mprob, D, se.fit = TRUE, type = "link", level=0, print.matrix = FALSE) 
+Dglm <- cbind(D, predictglm)
+Dglm <- within(Dglm, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+  }
+)
+
+
+D1 <-( ddply(Dglm, c("location", "sdtrt"), summarise,
+            N=length(ScpubcontA),
+             meanyield=mean(ScpubcontA),
+            sdyield=sd(ScpubcontA),
+            seyield=(sdyield/sqrt(N))
+                           ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+jpeg("PredProbLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
+g+
+  geom_bar(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+facet_grid(.~location)+
+  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
+    axis.title=element_text(size=10.5),
+  strip.text=element_text(size=11, color="black"), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5))+
+  labs(x="Seed Treatment", y=expression(paste("Plant Stand (plants ", A^-1, ")")), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
+dev.off()
+
+
+
+
+
+```
