@@ -12,8 +12,8 @@ library(Hmisc)
 
 rm(list = ls())
 Y <- (read.csv("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/CADOct3.csv"))
-Y2<-subset(Y, !(Y$Diff=="NA") & !(Y$sdtrt=="CON")
-          #& !(Y$Year=="2013")
+Y2<-subset(Y, !(Y$Diff=="NA") #& !(Y$sdtrt=="CON")
+          & !(Y$Year=="2013")
            )
 write.csv(Y2, ("/Users/devonrossman/Desktop/CSVforR/SoySdTrt/CSVFiles/SubsetY.csv"))
 
@@ -54,27 +54,57 @@ Dglm <- within(Dglm, {
 )
 
 
-D1 <-( ddply(Dglm, c("location", "sdtrt"), summarise,
-            N=length(ScpubcontA),
-             meanyield=mean(ScpubcontA),
-            sdyield=sd(ScpubcontA),
+D1 <-( ddply(Y3, c("location", "sdtrt"), summarise,
+            N=length(ScpubA),
+             meanyield=mean(ScpubA),
+            sdyield=sd(ScpubA),
             seyield=(sdyield/sqrt(N))
                            ))
 limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
 
-jpeg("PredProbLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
-g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
-g+
-  geom_bar(stat= "identity")+ 
+
+D7 <-( ddply(Y3, c("location", "sdtrt"), summarise,
+            N=length(yield),
+             meanyield=mean(yield),
+            sdyield=sd(yield),
+            seyield=(sdyield/sqrt(N))
+                           ))
+limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
+
+
+
+
+jpeg("SCYieldLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
+
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt))
+g3<-g+
+  geom_point(stat= "identity")+ 
   geom_errorbar(limits, width=0.4)+
 facet_grid(.~location)+
   theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
     axis.title=element_text(size=10.5),
-  strip.text=element_text(size=11, color="black"), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5))+
-  labs(x="Seed Treatment", y=expression(paste("Plant Stand (plants ", A^-1, ")")), color="")+ scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
+  strip.text=element_text(size=11, color="black"), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5, size=0.001), axis.ticks.x=element_blank())+
+  labs(x="", y=expression(paste("Plant Stand (plants ", A^-1, ")")), color="")+ 
+  scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))+ scale_y_continuous(breaks=c(80000, 120000, 160000), limits=c(75000,160000))
 dev.off()
+  
+g2<-ggplot(D7, aes(y=meanyield, x=sdtrt))
+g4<-g2+
+  geom_point(stat= "identity")+ 
+  geom_errorbar(limits, width=0.4)+
+facet_grid(.~location)+
+  theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
+    axis.title=element_text(size=10.5),
+  strip.text=element_text(size=0.01, color="black"),
+  strip.background=element_rect(fill=NULL), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5))+
+  labs(x="Seed Treatment", y=expression(paste("Yield (bu ", A^-1, ")")), color="")+ 
+  scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
+#+ scale_y_continuous(breaks=c(80000, 120000, 160000), limits=c(75000,160000))
 
+jpeg("SCYieldLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
+multiplot(plotlist=list(g3, g4))
 
+dev.off()
 
 
 
