@@ -74,23 +74,24 @@ limits<-aes(ymin=meanyield-(seyield*1.96), ymax=meanyield+(seyield*1.96))
 
 
 
-jpeg("SCYieldLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
+#jpeg("SCLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
 
-g<-ggplot(D1, aes(y=meanyield, x=sdtrt))
+g<-ggplot(D1, aes(y=meanyield, x=sdtrt, fill=sdtrt))
 g3<-g+
-  geom_point(stat= "identity")+ 
+  geom_bar(stat= "identity")+ 
   geom_errorbar(limits, width=0.4)+
 facet_grid(.~location)+
   theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
     axis.title=element_text(size=10.5),
-  strip.text=element_text(size=11, color="black"), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5, size=0.001), axis.ticks.x=element_blank())+
+  strip.text=element_text(size=11, color="black"), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5, size=8))+
   labs(x="", y=expression(paste("Plant Stand (plants ", A^-1, ")")), color="")+ 
-  scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))+ scale_y_continuous(breaks=c(80000, 120000, 160000), limits=c(75000,160000))
-dev.off()
+  scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))+ coord_cartesian(ylim=c(75000,160000))+
+  scale_y_continuous(breaks=c(80000,120000,160000))
+
   
-g2<-ggplot(D7, aes(y=meanyield, x=sdtrt))
+g2<-ggplot(D7, aes(y=meanyield, x=sdtrt, fill=sdtrt))
 g4<-g2+
-  geom_point(stat= "identity")+ 
+  geom_bar(stat= "identity")+ 
   geom_errorbar(limits, width=0.4)+
 facet_grid(.~location)+
   theme(text=element_text(color="black"), axis.text=element_text(size=8, angle=90, hjust=1),
@@ -98,8 +99,9 @@ facet_grid(.~location)+
   strip.text=element_text(size=0.01, color="black"),
   strip.background=element_rect(fill=NULL), axis.text.y=element_text(hjust=0.5), axis.text.x=element_text(vjust=0.5))+
   labs(x="Seed Treatment", y=expression(paste("Yield (bu ", A^-1, ")")), color="")+ 
-  scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))
-#+ scale_y_continuous(breaks=c(80000, 120000, 160000), limits=c(75000,160000))
+  scale_fill_manual(values = c("gray70", "gray50", "gray30", "black"))+
+  coord_cartesian(ylim=c(50,88))
+
 
 jpeg("SCYieldLocation.jpeg", width = 8, height = 5, units = 'in', res = 300)
 multiplot(plotlist=list(g3, g4))
